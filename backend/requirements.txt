@@ -1,0 +1,17 @@
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+langgraph>=0.1.0
+langgraph-checkpoint-postgres>=2.0.0
+psycopg[binary,pool]>=3.1.18
+langchain-openai>=0.1.7
+pydantic>=2.7.0
+pydantic-settings>=2.2.1
+pypdf>=4.2.0
+python-docx>=1.1.0
+google-auth>=2.29.0
+google-auth-oauthlib>=1.2.0
+google-api-python-client>=2.129.0
+cryptography>=42.0.7
+sqlalchemy>=2.0.30
+alembic>=1.13.1

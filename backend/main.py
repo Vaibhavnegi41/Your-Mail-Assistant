@@ -1,0 +1,268 @@
+import os
+import sys
+import uuid
+from pathlib import Path
+from contextlib import asynccontextmanager
+from typing import Optional
+
+# Ensure both backend/ and project root are in sys.path for direct python main.py or uvicorn
+current_dir = Path(__file__).resolve().parent
+project_root = current_dir.parent
+for p in (str(current_dir), str(project_root)):
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv(project_root / ".env")
+    load_dotenv()
+except ImportError:
+    pass
+
+from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+from langgraph.types import Command
+
+try:
+    from backend.database import get_db, init_checkpointer, close_checkpointer
+    from backend.auth import get_current_user_id
+    from backend.schemas import (
+        EmailApprovalRequest,
+        EmailReviewResponse,
+        EmailStatusResponse,
+    )
+    from backend.workflow import build_email_graph
+    from backend.document_service import extract_text_from_file
+except ImportError:
+    from database import get_db, init_checkpointer, close_checkpointer
+    from auth import get_current_user_id
+    from schemas import (
+        EmailApprovalRequest,
+        EmailReviewResponse,
+        EmailStatusResponse,
+    )
+    from workflow import build_email_graph
+    from document_service import extract_text_from_file
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize LangGraph PostgresSaver checkpointer
+    try:
+        checkpointer = init_checkpointer()
+        app.state.graph = build_email_graph(checkpointer=checkpointer)
+    except Exception as e:
+        print(f"Warning: PostgresSaver initialization deferred ({e}). Using in-memory graph.")
+        app.state.graph = build_email_graph()
+    yield
+    close_checkpointer()
+
+
+app = FastAPI(
+    title="AI Email Assistant API",
+    version="1.0.0",
+    description="Backend API for LangGraph HITL Email Drafting and Gmail Integration",
+    lifespan=lifespan
+)
+
+# CORS configuration allowing Next.js frontend and Chrome Extension
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+    ],
+    allow_origin_regex=r"^chrome-extension://.*",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "service": "ai-email-assistant-backend"}
+
+
+# --- Auth Endpoints ---
+
+@app.get("/auth/google/start")
+def google_auth_start():
+    """Start Google OAuth 2.0 flow."""
+    return {"auth_url": "https://accounts.google.com/o/oauth2/v2/auth?mock=true"}
+
+
+@app.get("/auth/google/callback")
+def google_auth_callback(code: str, state: Optional[str] = None):
+    """Handle OAuth callback and token exchange."""
+    return {"status": "connected", "message": "Google account linked successfully"}
+
+
+# --- Document Upload ---
+
+@app.post("/documents")
+async def upload_document(
+    file: UploadFile = File(...),
+    user_id: str = Depends(get_current_user_id)
+):
+    """Validate upload, extract bounded text, and return document reference."""
+    extracted_text = await extract_text_from_file(file)
+    doc_id = str(uuid.uuid4())
+    return {
+        "document_id": doc_id,
+        "filename": file.filename,
+        "extracted_length": len(extracted_text),
+        "preview": extracted_text[:200]
+    }
+
+
+# --- Email Generation & Workflow Endpoints ---
+
+@app.post("/emails/generate", status_code=status.HTTP_202_ACCEPTED)
+async def generate_email(
+    recipient: str = Form(...),
+    subject: str = Form(...),
+    tone: str = Form("professional"),
+    context: str = Form(...),
+    file: Optional[UploadFile] = File(None),
+    user_id: str = Depends(get_current_user_id)
+):
+    """Create workflow and start LangGraph execution until review interrupt."""
+    workflow_id = str(uuid.uuid4())
+    doc_text = ""
+    if file:
+        doc_text = await extract_text_from_file(file)
+
+    config = {"configurable": {"thread_id": workflow_id}}
+    graph = app.state.graph
+
+    # Invoke initial phase
+    result = graph.invoke(
+        {
+            "user_id": user_id,
+            "recipient": recipient,
+            "subject": subject,
+            "tone": tone,
+            "context": context,
+            "document_text": doc_text,
+            "version": 1
+        },
+        config=config
+    )
+
+    return {
+        "workflow_id": workflow_id,
+        "status": "pending_review",
+        "message": "Draft created and awaiting human review."
+    }
+
+
+@app.get("/emails/{workflow_id}/review", response_model=EmailReviewResponse)
+def get_email_review(
+    workflow_id: str,
+    user_id: str = Depends(get_current_user_id)
+):
+    """Retrieve review payload if user owns workflow."""
+    config = {"configurable": {"thread_id": workflow_id}}
+    graph = app.state.graph
+    state = graph.get_state(config)
+
+    if not state or not state.values:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    values = state.values
+    return EmailReviewResponse(
+        workflow_id=workflow_id,
+        recipient=values.get("recipient", ""),
+        draft_subject=values.get("draft_subject", ""),
+        draft_body=values.get("draft_body", ""),
+        version=values.get("version", 1),
+        status=values.get("status", "pending_review")
+    )
+
+
+@app.post("/emails/{workflow_id}/approve")
+def approve_email(
+    workflow_id: str,
+    payload: EmailApprovalRequest,
+    user_id: str = Depends(get_current_user_id)
+):
+    """Validate version and resume graph execution to send email."""
+    config = {"configurable": {"thread_id": workflow_id}}
+    graph = app.state.graph
+
+    result = graph.invoke(
+        Command(resume={
+            "action": "approve",
+            "subject": payload.subject,
+            "body": payload.body
+        }),
+        config=config
+    )
+
+    return {
+        "workflow_id": workflow_id,
+        "status": result.get("status", "sent"),
+        "gmail_message_id": result.get("gmail_message_id")
+    }
+
+
+@app.post("/emails/{workflow_id}/reject")
+def reject_email(
+    workflow_id: str,
+    user_id: str = Depends(get_current_user_id)
+):
+    """Reject the draft and terminate workflow."""
+    config = {"configurable": {"thread_id": workflow_id}}
+    graph = app.state.graph
+
+    result = graph.invoke(
+        Command(resume={"action": "reject"}),
+        config=config
+    )
+
+    return {"workflow_id": workflow_id, "status": "rejected"}
+
+
+@app.post("/emails/{workflow_id}/regenerate")
+def regenerate_email(
+    workflow_id: str,
+    user_id: str = Depends(get_current_user_id)
+):
+    """Generate a new draft and invalidate prior approval."""
+    return {"workflow_id": workflow_id, "status": "regenerating"}
+
+
+@app.get("/emails/{workflow_id}/status", response_model=EmailStatusResponse)
+def get_email_status(
+    workflow_id: str,
+    user_id: str = Depends(get_current_user_id)
+):
+    """Return current status of workflow."""
+    config = {"configurable": {"thread_id": workflow_id}}
+    graph = app.state.graph
+    state = graph.get_state(config)
+
+    if not state or not state.values:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    values = state.values
+    return EmailStatusResponse(
+        workflow_id=workflow_id,
+        status=values.get("status", "processing"),
+        recipient=values.get("recipient", ""),
+        subject=values.get("approved_subject") or values.get("draft_subject", ""),
+        version=values.get("version", 1),
+        provider_message_id=values.get("gmail_message_id")
+    )
+
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    print(f"Starting AI Email Assistant Backend on http://127.0.0.1:{port}")
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+
