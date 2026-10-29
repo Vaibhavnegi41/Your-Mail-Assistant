@@ -1,7 +1,21 @@
+import os
 from typing import TypedDict, Literal, Optional
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import interrupt
+from dotenv import load_dotenv
+from langchain_groq import ChatGroq
 
+
+load_dotenv()
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+model = ChatGroq(
+    model="openai/gpt-oss-120b",
+    api_key=GROQ_API_KEY,
+    temperature=0.2,
+    max_tokens=1024
+)
 
 class EmailState(TypedDict, total=False):
     recipient: str
