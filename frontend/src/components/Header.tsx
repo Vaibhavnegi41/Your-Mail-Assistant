@@ -9,11 +9,11 @@ export const Header: React.FC = () => {
         <div className="logo-icon">✉️</div>
         <div>
           <h1 className="header-title">AI Email Assistant</h1>
-          <p className="header-subtitle">LangGraph Human-In-The-Loop &bull; Gmail API &bull; PostgreSQL</p>
+          <p className="header-subtitle">AI-Powered Email Drafting & Review</p>
         </div>
       </div>
       <div className="header-actions">
-        <span className="badge-connected">● Gmail Connected</span>
+        <span className="badge-connected">Ready</span>
       </div>
     </header>
   );

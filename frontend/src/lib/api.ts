@@ -77,3 +77,20 @@ export async function getEmailStatus(workflowId: string): Promise<EmailStatusRes
 
   return response.json();
 }
+
+export async function getEmailRecords(): Promise<import('./types').EmailRecord[]> {
+  try {
+    const response = await fetch(`${API_URL}/emails/records`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return data.records || [];
+    }
+  } catch (err) {
+    console.warn('Failed to fetch backend records:', err);
+  }
+  return [];
+}
+

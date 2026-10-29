@@ -1,21 +1,54 @@
 import os
 from typing import TypedDict, Literal, Optional
+from pydantic import BaseModel, Field
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import interrupt
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
+from langchain_core.prompts import ChatPromptTemplate
 
 
 load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+MODEL_NAME = os.getenv("LLM_MODEL") or os.getenv("GROQ_MODEL") or "llama-3.3-70b-versatile"
 
 model = ChatGroq(
-    model="openai/gpt-oss-120b",
+    model=MODEL_NAME,
     api_key=GROQ_API_KEY,
     temperature=0.2,
     max_tokens=1024
 )
+
+
+class EmailDraftOutput(BaseModel):
+    draft_subject: str = Field(description="Clear, polished subject line for the email")
+    draft_body: str = Field(description="Complete email body including greeting, body paragraphs, and professional closing")
+
+
+EMAIL_SYSTEM_PROMPT = """You are an expert AI email assistant.
+Your task is to draft high-impact, contextually accurate, and well-structured emails.
+
+### Guidelines:
+1. Tone: Strictly adhere to the requested tone: {tone} (e.g., professional, friendly, formal, concise, urgent).
+2. Content & Accuracy: Base the email strictly on the provided context and any reference document text. Do not invent commitments, dates, or factual claims not provided.
+3. Completeness: Do NOT leave bracketed placeholders like [Your Name], [Company], or [Recipient Name]. If names are not explicitly provided, use natural phrasing or standard professional greetings and closings.
+4. Structure:
+   - Appropriate salutation
+   - Engaging opening and structured message body
+   - Clear call to action (CTA) if applicable
+   - Polite professional sign-off
+"""
+
+EMAIL_USER_PROMPT = """Please draft an email based on the following:
+- Tone: {tone}
+- Subject/Topic: {subject}
+- Recipient: {recipient}
+- Context/Details:
+{context}
+{document_section}
+"""
+
 
 class EmailState(TypedDict, total=False):
     recipient: str
@@ -46,19 +79,41 @@ def prepare_context(state: EmailState):
 
 
 def generate_email(state: EmailState):
-    """Call LLM with structured output prompt."""
-    # LLM generation placeholder (integrate langchain_openai / ChatOpenAI here)
+    """Call Groq LLM with structured output prompt to generate draft email."""
     recipient = state.get("recipient", "")
     subject = state.get("subject", "Follow up")
     context = state.get("context", "")
     tone = state.get("tone", "professional")
+    doc_text = state.get("document_text", "")
 
-    draft_subject = f"[{tone.capitalize()}] {subject}"
-    draft_body = (
-        f"Dear Recipient,\n\n"
-        f"{context}\n\n"
-        f"Best regards,\nSender"
-    )
+    document_section = f"\nAdditional Reference Document:\n{doc_text}" if doc_text else ""
+
+    try:
+        structured_model = model.with_structured_output(EmailDraftOutput)
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", EMAIL_SYSTEM_PROMPT),
+            ("human", EMAIL_USER_PROMPT),
+        ])
+        chain = prompt | structured_model
+        result: EmailDraftOutput = chain.invoke({
+            "tone": tone,
+            "subject": subject,
+            "recipient": recipient or "Valued Contact",
+            "context": context or "Follow up on our previous conversation.",
+            "document_section": document_section,
+        })
+
+        draft_subject = result.draft_subject.strip()
+        draft_body = result.draft_body.strip()
+    except Exception as exc:
+        print(f"Warning: LLM generation error ({exc}). Falling back to template draft.")
+        draft_subject = f"[{tone.capitalize()}] {subject}"
+        draft_body = (
+            f"Dear Recipient,\n\n"
+            f"{context}\n\n"
+            f"Best regards,\nSender"
+        )
+
     return {
         "draft_subject": draft_subject,
         "draft_body": draft_body,

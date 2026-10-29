@@ -36,3 +36,18 @@ export interface EmailStatusResponse {
   sent_at?: string;
   error_message?: string;
 }
+
+export interface EmailRecord {
+  workflow_id: string;
+  recipient: string;
+  subject: string;
+  tone: string;
+  context?: string;
+  draft_subject: string;
+  draft_body: string;
+  status: WorkflowStatus;
+  version: number;
+  created_at: string;
+  gmail_message_id?: string | null;
+}
+

@@ -21,10 +21,8 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body>
-        <div className="app-container">
-          {children}
-        </div>
+      <body className="antialiased">
+        {children}
       </body>
     </html>
   );

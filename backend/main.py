@@ -1,6 +1,7 @@
 import os
 import sys
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import Optional
@@ -54,7 +55,8 @@ async def lifespan(app: FastAPI):
         app.state.graph = build_email_graph(checkpointer=checkpointer)
     except Exception as e:
         print(f"Warning: PostgresSaver initialization deferred ({e}). Using in-memory graph.")
-        app.state.graph = build_email_graph()
+        from langgraph.checkpoint.memory import MemorySaver
+        app.state.graph = build_email_graph(checkpointer=MemorySaver())
     yield
     close_checkpointer()
 
@@ -119,6 +121,10 @@ async def upload_document(
     }
 
 
+# In-memory store for email records and history
+EMAIL_RECORDS = []
+
+
 # --- Email Generation & Workflow Endpoints ---
 
 @app.post("/emails/generate", status_code=status.HTTP_202_ACCEPTED)
@@ -153,11 +159,36 @@ async def generate_email(
         config=config
     )
 
+    state = graph.get_state(config)
+    values = state.values if state else {}
+
+    # Record into history store
+    new_record = {
+        "workflow_id": workflow_id,
+        "recipient": recipient,
+        "subject": values.get("draft_subject", subject),
+        "tone": tone,
+        "context": context,
+        "draft_subject": values.get("draft_subject", subject),
+        "draft_body": values.get("draft_body", ""),
+        "status": "pending_review",
+        "version": values.get("version", 1),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "gmail_message_id": None
+    }
+    EMAIL_RECORDS.insert(0, new_record)
+
     return {
         "workflow_id": workflow_id,
         "status": "pending_review",
         "message": "Draft created and awaiting human review."
     }
+
+
+@app.get("/emails/records")
+def get_email_records(user_id: str = Depends(get_current_user_id)):
+    """Retrieve full history of email generation, approval, and send records."""
+    return {"records": EMAIL_RECORDS}
 
 
 @app.get("/emails/{workflow_id}/review", response_model=EmailReviewResponse)
@@ -203,10 +234,22 @@ def approve_email(
         config=config
     )
 
+    final_status = result.get("status", "sent")
+    msg_id = result.get("gmail_message_id")
+
+    # Update record
+    for rec in EMAIL_RECORDS:
+        if rec["workflow_id"] == workflow_id:
+            rec["status"] = final_status
+            rec["gmail_message_id"] = msg_id
+            rec["draft_subject"] = payload.subject
+            rec["draft_body"] = payload.body
+            break
+
     return {
         "workflow_id": workflow_id,
-        "status": result.get("status", "sent"),
-        "gmail_message_id": result.get("gmail_message_id")
+        "status": final_status,
+        "gmail_message_id": msg_id
     }
 
 
@@ -223,6 +266,12 @@ def reject_email(
         Command(resume={"action": "reject"}),
         config=config
     )
+
+    # Update record
+    for rec in EMAIL_RECORDS:
+        if rec["workflow_id"] == workflow_id:
+            rec["status"] = "rejected"
+            break
 
     return {"workflow_id": workflow_id, "status": "rejected"}
 
