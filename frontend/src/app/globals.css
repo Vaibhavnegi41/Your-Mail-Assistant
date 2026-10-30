@@ -959,7 +959,7 @@ body {
 .records-table {
   width: 100%;
   border-collapse: collapse;
-  text-align: left;
+  text-align: center;
 }
 
 .records-table th {
@@ -970,6 +970,7 @@ body {
   color: var(--text-muted);
   border-bottom: 1px solid var(--border-subtle);
   background: rgba(11, 17, 32, 0.5);
+  text-align: center;
 }
 
 .records-table td {
@@ -977,6 +978,7 @@ body {
   font-size: 0.88rem;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-secondary);
+  text-align: center;
 }
 
 .records-table tr:hover td {

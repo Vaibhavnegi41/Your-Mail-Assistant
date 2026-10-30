@@ -225,10 +225,9 @@ export const RecordsView: React.FC<RecordsViewProps> = ({
               <tr>
                 <th>Recipient</th>
                 <th>Subject Line</th>
-                <th>Tone & Ver</th>
                 <th>Status</th>
                 <th>Date</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -241,18 +240,12 @@ export const RecordsView: React.FC<RecordsViewProps> = ({
                     {r.draft_subject || r.subject}
                   </td>
                   <td>
-                    <span style={{ textTransform: 'capitalize', color: '#94a3b8' }}>
-                      {r.tone}
-                    </span>{' '}
-                    <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>v{r.version}</span>
-                  </td>
-                  <td>
                     {getStatusBadge(r.status)}
                   </td>
                   <td style={{ fontSize: '0.8rem', color: '#64748b' }}>
                     {formatDate(r.created_at)}
                   </td>
-                  <td style={{ textAlign: 'right' }}>
+                  <td style={{ textAlign: 'center' }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                       <button 
                         type="button" 

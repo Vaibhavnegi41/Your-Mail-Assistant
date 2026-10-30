@@ -4,40 +4,40 @@ import React, { useState, useEffect } from 'react';
 import { Sidebar, NavTab } from '@/components/Sidebar';
 import { RecordsView } from '@/components/RecordsView';
 import { VaultView } from '@/components/VaultView';
-import { 
-  ApproveModal, 
-  DispatchedModal, 
-  RejectModal, 
-  RejectedResultModal, 
-  ErrorModal, 
-  InspectRecordModal 
+import {
+  ApproveModal,
+  DispatchedModal,
+  RejectModal,
+  RejectedResultModal,
+  ErrorModal,
+  InspectRecordModal
 } from '@/components/Modals';
-import { 
-  EmailFormData, 
-  ReviewDraft, 
-  WorkflowStatus, 
-  EmailRecord 
+import {
+  EmailFormData,
+  ReviewDraft,
+  WorkflowStatus,
+  EmailRecord
 } from '@/lib/types';
-import { 
-  generateEmail, 
-  getReviewPayload, 
-  approveEmail, 
-  rejectEmail, 
-  getEmailRecords 
+import {
+  generateEmail,
+  getReviewPayload,
+  approveEmail,
+  rejectEmail,
+  getEmailRecords
 } from '@/lib/api';
-import { 
-  Sparkles, 
-  Mail, 
-  Send, 
-  Copy, 
-  Check, 
-  RotateCw, 
-  FileText, 
-  Paperclip, 
-  X, 
-  ShieldCheck, 
-  Clock, 
-  AlertCircle 
+import {
+  Sparkles,
+  Mail,
+  Send,
+  Copy,
+  Check,
+  RotateCw,
+  FileText,
+  Paperclip,
+  X,
+  ShieldCheck,
+  Clock,
+  AlertCircle
 } from 'lucide-react';
 
 export default function Home() {
@@ -187,7 +187,7 @@ export default function Home() {
       setIsApproveModalOpen(false);
 
       // Update records
-      const updated = records.map(r => 
+      const updated = records.map(r =>
         r.workflow_id === workflowId ? {
           ...r,
           status: 'sent' as WorkflowStatus,
@@ -231,7 +231,7 @@ export default function Home() {
       setIsRejectModalOpen(false);
 
       // Update records
-      const updated = records.map(r => 
+      const updated = records.map(r =>
         r.workflow_id === workflowId ? { ...r, status: 'rejected' as WorkflowStatus } : r
       );
       saveRecordsToCache(updated);
@@ -292,9 +292,9 @@ export default function Home() {
   return (
     <div className="app-shell">
       {/* 1. VS Code-Style Left Navigation Sidebar */}
-      <Sidebar 
-        activeTab={activeTab} 
-        onTabChange={setActiveTab} 
+      <Sidebar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
         pendingCount={pendingCount}
         totalRecordsCount={records.length}
       />
@@ -322,9 +322,7 @@ export default function Home() {
           </div>
         </header>
 
-        {/* -----------------------------------------------------------
-            VIEW: Composer (Split-Screen Workspace)
-            ----------------------------------------------------------- */}
+
         {activeTab === 'composer' && (
           <div className="composer-split-container">
             {/* Left Half: Form Studio */}
@@ -334,7 +332,7 @@ export default function Home() {
                   <Mail size={18} color="#38bdf8" /> Compose & Configure
                 </h1>
                 <p className="pane-subtitle">
-                  Define your objective and key points. The Groq LLM will craft a structured draft for review.
+                  Define your objective and key points.
                 </p>
               </div>
 
@@ -378,11 +376,11 @@ export default function Home() {
                   <label className="form-label">Tone of Voice</label>
                   <div className="tone-selector-grid">
                     {[
-                      { id: 'professional', label: '👔 Professional' },
-                      { id: 'casual', label: '☕ Casual & Friendly' },
-                      { id: 'persuasive', label: '🎯 Persuasive' },
-                      { id: 'urgent', label: '⚡ Urgent' },
-                      { id: 'concise', label: '✂️ Concise' },
+                      { id: 'professional', label: 'Professional' },
+                      { id: 'casual', label: 'Casual & Friendly' },
+                      { id: 'persuasive', label: 'Persuasive' },
+                      { id: 'urgent', label: 'Urgent' },
+                      { id: 'concise', label: 'Concise' },
                     ].map((t) => (
                       <button
                         key={t.id}
@@ -482,7 +480,7 @@ export default function Home() {
                   <h3 className="empty-title">Ready for Your First Draft</h3>
                   <p className="empty-desc">
                     Fill in the recipient and context on the left, then click <strong>"Generate AI Draft"</strong>.
-                    Your complete email will populate right here across the entire screen for clear, comfortable reading and human review.
+                    Your complete email will populate right here
                   </p>
                 </div>
               ) : (
@@ -593,11 +591,11 @@ export default function Home() {
             VIEW: Document Context Vault
             ----------------------------------------------------------- */}
         {activeTab === 'vault' && (
-          <VaultView 
+          <VaultView
             onUseInComposer={(text) => {
               setContext((prev) => prev ? `${prev}\n\n[Reference Notes]:\n${text}` : text);
               setActiveTab('composer');
-            }} 
+            }}
           />
         )}
       </main>
