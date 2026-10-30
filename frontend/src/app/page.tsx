@@ -458,11 +458,11 @@ export default function Home() {
                 >
                   {isLoading ? (
                     <>
-                      <RotateCw size={18} className="animate-spin" /> Calling Groq LLM...
+                      <RotateCw size={18} className="animate-spin" /> Generating Draft...
                     </>
                   ) : (
                     <>
-                      <Sparkles size={18} /> Generate AI Draft
+                      Generate Draft
                     </>
                   )}
                 </button>
@@ -489,12 +489,9 @@ export default function Home() {
                   {/* Meta Bar */}
                   <div className="canvas-meta-bar">
                     <div className="canvas-meta-left">
-                      <span className="hitl-status-badge">
-                        <Clock size={12} /> HITL Review State
-                      </span>
-                      <span className="meta-pill">To: {draft.recipient}</span>
-                      <span className="meta-pill" style={{ textTransform: 'capitalize' }}>Tone: {tone}</span>
-                      <span className="meta-pill">Version {draft.version}</span>
+
+                      <span className="meta-pill ">To: {draft.recipient}</span>
+
                     </div>
 
                     <div className="canvas-meta-right">

@@ -8,10 +8,30 @@ from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 
 
+from pathlib import Path
+
+# Load environment from project root if not in cwd
+project_root = Path(__file__).resolve().parent.parent
+load_dotenv(project_root / ".env")
 load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-MODEL_NAME = os.getenv("LLM_MODEL") or os.getenv("GROQ_MODEL") or "llama-3.3-70b-versatile"
+MODEL_NAME = os.getenv("GROQ_MODEL") or os.getenv("LLM_MODEL") or "openai/gpt-oss-120b"
+if MODEL_NAME.startswith("gpt-4"):
+    MODEL_NAME = "openai/gpt-oss-120b"
+
+
+def get_candidate_models():
+    primary = os.getenv("GROQ_MODEL") or os.getenv("LLM_MODEL") or ""
+    defaults = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b", "llama-3.3-70b-versatile"]
+    candidates = []
+    if primary and not primary.startswith("gpt-4") and not primary.startswith("gpt-3"):
+        candidates.append(primary)
+    for m in defaults:
+        if m not in candidates:
+            candidates.append(m)
+    return candidates
+
 
 model = ChatGroq(
     model=MODEL_NAME,
@@ -88,25 +108,45 @@ def generate_email(state: EmailState):
 
     document_section = f"\nAdditional Reference Document:\n{doc_text}" if doc_text else ""
 
-    try:
-        structured_model = model.with_structured_output(EmailDraftOutput)
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", EMAIL_SYSTEM_PROMPT),
-            ("human", EMAIL_USER_PROMPT),
-        ])
-        chain = prompt | structured_model
-        result: EmailDraftOutput = chain.invoke({
-            "tone": tone,
-            "subject": subject,
-            "recipient": recipient or "Valued Contact",
-            "context": context or "Follow up on our previous conversation.",
-            "document_section": document_section,
-        })
+    api_key = os.getenv("GROQ_API_KEY")
+    candidates = get_candidate_models()
+    last_exc = None
 
-        draft_subject = result.draft_subject.strip()
-        draft_body = result.draft_body.strip()
-    except Exception as exc:
-        print(f"Warning: LLM generation error ({exc}). Falling back to template draft.")
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", EMAIL_SYSTEM_PROMPT),
+        ("human", EMAIL_USER_PROMPT),
+    ])
+
+    draft_subject = ""
+    draft_body = ""
+
+    for candidate_name in candidates:
+        try:
+            chat_model = ChatGroq(
+                model=candidate_name,
+                api_key=api_key,
+                temperature=0.2,
+                max_tokens=1024
+            )
+            structured_model = chat_model.with_structured_output(EmailDraftOutput)
+            chain = prompt | structured_model
+            result: EmailDraftOutput = chain.invoke({
+                "tone": tone,
+                "subject": subject,
+                "recipient": recipient or "Valued Contact",
+                "context": context or "Follow up on our previous conversation.",
+                "document_section": document_section,
+            })
+
+            draft_subject = result.draft_subject.strip()
+            draft_body = result.draft_body.strip()
+            if draft_subject and draft_body:
+                break
+        except Exception as exc:
+            last_exc = exc
+            print(f"Info: Model {candidate_name} failed ({exc}), attempting next available Groq model...")
+    else:
+        print(f"Warning: All LLM models failed (last error: {last_exc}). Falling back to template draft.")
         draft_subject = f"[{tone.capitalize()}] {subject}"
         draft_body = (
             f"Dear Recipient,\n\n"

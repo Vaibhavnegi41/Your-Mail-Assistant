@@ -37,7 +37,7 @@ export const VaultView: React.FC<VaultViewProps> = ({ onUseInComposer }) => {
   ]);
 
   return (
-    <div className="records-container">
+    <div className="records-container" style={{ overflowY: 'auto' }}>
       <div className="pane-section-header">
         <h2 className="pane-title" style={{ fontSize: '1.3rem' }}>
           <FolderLock size={22} color="#38bdf8" /> Document Context Vault
