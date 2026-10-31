@@ -47,7 +47,7 @@ export const VaultView: React.FC<VaultViewProps> = ({ onUseInComposer }) => {
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
+      <div className="vault-grid">
         {items.map((doc) => (
           <div key={doc.id} className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>

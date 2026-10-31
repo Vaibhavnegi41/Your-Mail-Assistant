@@ -220,70 +220,122 @@ export const RecordsView: React.FC<RecordsViewProps> = ({
             </p>
           </div>
         ) : (
-          <table className="records-table">
-            <thead>
-              <tr>
-                <th>Recipient</th>
-                <th>Subject Line</th>
-                <th>Status</th>
-                <th>Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* Desktop Table View */}
+            <table className="records-table">
+              <thead>
+                <tr>
+                  <th>Recipient</th>
+                  <th>Subject Line</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRecords.map((r) => (
+                  <tr key={r.workflow_id}>
+                    <td style={{ fontWeight: 600, color: '#f1f5f9' }}>
+                      {r.recipient}
+                    </td>
+                    <td style={{ maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {r.draft_subject || r.subject}
+                    </td>
+                    <td>
+                      {getStatusBadge(r.status)}
+                    </td>
+                    <td style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                      {formatDate(r.created_at)}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <button 
+                          type="button" 
+                          className="icon-btn-ghost" 
+                          onClick={() => onInspect(r)}
+                          title="View Full Email"
+                        >
+                          <Eye size={15} /> Inspect
+                        </button>
+
+                        <button 
+                          type="button" 
+                          className="icon-btn-ghost" 
+                          onClick={() => handleCopyBody(r)}
+                          title="Copy Body"
+                        >
+                          {copiedId === r.workflow_id ? (
+                            <Check size={14} color="#10b981" />
+                          ) : (
+                            <Copy size={14} />
+                          )}
+                        </button>
+
+                        <button 
+                          type="button" 
+                          className="icon-btn-ghost" 
+                          onClick={() => onLoadInComposer(r)}
+                          title="Load into Composer"
+                          style={{ color: '#38bdf8' }}
+                        >
+                          Load
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Mobile / Sidepanel Card List */}
+            <div className="records-mobile-cards">
               {filteredRecords.map((r) => (
-                <tr key={r.workflow_id}>
-                  <td style={{ fontWeight: 600, color: '#f1f5f9' }}>
-                    {r.recipient}
-                  </td>
-                  <td style={{ maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {r.draft_subject || r.subject}
-                  </td>
-                  <td>
+                <div key={r.workflow_id} className="record-mobile-card">
+                  <div className="record-card-top">
+                    <span className="record-card-recipient">{r.recipient}</span>
                     {getStatusBadge(r.status)}
-                  </td>
-                  <td style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                    {formatDate(r.created_at)}
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  </div>
+                  <div className="record-card-subject">
+                    {r.draft_subject || r.subject}
+                  </div>
+                  <div className="record-card-footer">
+                    <span className="record-card-date">{formatDate(r.created_at)}</span>
+                    <div className="record-card-actions">
                       <button 
                         type="button" 
-                        className="icon-btn-ghost" 
+                        className="icon-btn-ghost compact"
                         onClick={() => onInspect(r)}
                         title="View Full Email"
                       >
-                        <Eye size={15} /> Inspect
+                        <Eye size={13} /> View
                       </button>
-
                       <button 
                         type="button" 
-                        className="icon-btn-ghost" 
-                        onClick={() => handleCopyBody(r)}
-                        title="Copy Body"
-                      >
-                        {copiedId === r.workflow_id ? (
-                          <Check size={14} color="#10b981" />
-                        ) : (
-                          <Copy size={14} />
-                        )}
-                      </button>
-
-                      <button 
-                        type="button" 
-                        className="icon-btn-ghost" 
+                        className="icon-btn-ghost compact"
                         onClick={() => onLoadInComposer(r)}
                         title="Load into Composer"
                         style={{ color: '#38bdf8' }}
                       >
-                        Load
+                        <Send size={13} /> Open
+                      </button>
+                      <button 
+                        type="button" 
+                        className="icon-btn-ghost compact"
+                        onClick={() => handleCopyBody(r)}
+                        title="Copy Body"
+                      >
+                        {copiedId === r.workflow_id ? (
+                          <Check size={13} color="#10b981" />
+                        ) : (
+                          <Copy size={13} />
+                        )}
                       </button>
                     </div>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
     </div>

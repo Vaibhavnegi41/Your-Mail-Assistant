@@ -46,6 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             title="Composer & HITL Review (Ctrl+1)"
           >
             <PenTool size={20} />
+            <span className="sidebar-label">Composer</span>
             {pendingCount > 0 && (
               <span className="sidebar-badge">{pendingCount}</span>
             )}
@@ -58,6 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             title="Mail Records & Results (Ctrl+2)"
           >
             <Archive size={20} />
+            <span className="sidebar-label">Records</span>
             {totalRecordsCount > 0 && (
               <span 
                 className="sidebar-badge" 
@@ -75,6 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             title="Document Vault (Ctrl+3)"
           >
             <FolderLock size={20} />
+            <span className="sidebar-label">Vault</span>
           </button>
         </nav>
       </div>

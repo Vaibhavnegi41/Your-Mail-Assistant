@@ -43,6 +43,7 @@ import {
 export default function Home() {
   // Navigation & View
   const [activeTab, setActiveTab] = useState<NavTab>('composer');
+  const [composerSubTab, setComposerSubTab] = useState<'form' | 'draft'>('form');
 
   // Workflow & Draft State
   const [status, setStatus] = useState<WorkflowStatus>('idle');
@@ -145,6 +146,7 @@ export default function Home() {
       const reviewData = await getReviewPayload(res.workflow_id);
       setDraft(reviewData);
       setStatus('pending_review');
+      setComposerSubTab('draft');
 
       // Add to records list
       const newRec: EmailRecord = {
@@ -284,6 +286,7 @@ export default function Home() {
     setWorkflowId(rec.workflow_id);
     setStatus(rec.status);
     setActiveTab('composer');
+    setComposerSubTab('draft');
   };
 
   // Pending count for sidebar badge
@@ -304,14 +307,19 @@ export default function Home() {
         {/* Top Header Bar */}
         <header className="top-header-bar">
           <div className="top-header-left">
+            <div
+              className="mobile-header-logo"
+              onClick={() => setActiveTab('composer')}
+              title="AI Email Studio"
+            >
+              <Mail size={16} />
+            </div>
             <span className="view-title">
               {activeTab === 'composer' && 'AI Email Studio'}
               {activeTab === 'records' && 'Mail Records & Results'}
               {activeTab === 'vault' && 'Document Context Vault'}
             </span>
-            <div className="view-pill">
-              <Sparkles size={13} /> LangGraph HITL
-            </div>
+
           </div>
 
           <div className="top-header-right">
@@ -319,252 +327,301 @@ export default function Home() {
               <span className="status-dot-active" />
               <span>Ready</span>
             </div>
+            <div className="mobile-header-avatar" title="Vaibhav Negi">VN</div>
           </div>
         </header>
 
-
         {activeTab === 'composer' && (
-          <div className="composer-split-container">
-            {/* Left Half: Form Studio */}
-            <div className="composer-left-pane">
-              <div className="pane-section-header">
-                <h1 className="pane-title">
-                  <Mail size={18} color="#38bdf8" /> Compose & Configure
-                </h1>
-                <p className="pane-subtitle">
-                  Define your objective and key points.
-                </p>
-              </div>
-
-              <form onSubmit={handleGenerate}>
-                {/* Recipient */}
-                <div className="form-group">
-                  <label className="form-label">
-                    <span>Recipient Email</span>
-                    <span style={{ color: '#f43f5e' }}>*</span>
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="e.g. partner@company.com"
-                    value={recipient}
-                    onChange={(e) => setRecipient(e.target.value)}
-                    required
-                    disabled={isLoading}
-                    className="form-input"
-                  />
-                </div>
-
-                {/* Subject / Goal */}
-                <div className="form-group">
-                  <label className="form-label">
-                    <span>Primary Goal / Topic</span>
-                    <span style={{ color: '#f43f5e' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Follow-up on project roadmap proposal"
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    required
-                    disabled={isLoading}
-                    className="form-input"
-                  />
-                </div>
-
-                {/* Tone Selector Pills */}
-                <div className="form-group">
-                  <label className="form-label">Tone of Voice</label>
-                  <div className="tone-selector-grid">
-                    {[
-                      { id: 'professional', label: 'Professional' },
-                      { id: 'casual', label: 'Casual & Friendly' },
-                      { id: 'persuasive', label: 'Persuasive' },
-                      { id: 'urgent', label: 'Urgent' },
-                      { id: 'concise', label: 'Concise' },
-                    ].map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        className={`tone-pill-btn ${tone === t.id ? 'active' : ''}`}
-                        onClick={() => setTone(t.id as EmailFormData['tone'])}
-                        disabled={isLoading}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Context & Key Points */}
-                <div className="form-group">
-                  <div className="form-label">
-                    <span>Context & Key Points</span>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                      {context.length} chars
-                    </span>
-                  </div>
-                  <textarea
-                    rows={5}
-                    placeholder="Summarize key facts, meeting takeaways, deadlines, or requested next steps..."
-                    value={context}
-                    onChange={(e) => setContext(e.target.value)}
-                    required
-                    disabled={isLoading}
-                    className="form-input"
-                    style={{ resize: 'vertical' }}
-                  />
-                </div>
-
-                {/* Document Reference Dropzone */}
-                <div className="form-group">
-                  <label className="form-label">Reference Document (Optional)</label>
-                  <label className={`dropzone-box ${file ? 'has-file' : ''}`}>
-                    <input
-                      type="file"
-                      accept=".pdf,.docx,.txt"
-                      style={{ display: 'none' }}
-                      onChange={(e) => setFile(e.target.files?.[0] || null)}
-                      disabled={isLoading}
-                    />
-                    <Paperclip size={18} color={file ? '#34d399' : '#64748b'} />
-                    <div style={{ flex: 1, fontSize: '0.84rem', color: file ? '#f8fafc' : '#64748b' }}>
-                      {file ? (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontWeight: 600 }}>{file.name}</span>
-                          <button
-                            type="button"
-                            onClick={(ev) => {
-                              ev.preventDefault();
-                              setFile(null);
-                            }}
-                            className="icon-btn-ghost"
-                            style={{ color: '#f87171', padding: '2px 6px' }}
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ) : (
-                        'Attach PDF, DOCX, or text notes for grounding'
-                      )}
-                    </div>
-                  </label>
-                </div>
-
-                {/* Generate Button with Shimmer */}
-                <button
-                  type="submit"
-                  disabled={isLoading || !recipient || !subject || !context}
-                  className="btn-generate-shimmer"
-                >
-                  {isLoading ? (
-                    <>
-                      <RotateCw size={18} className="animate-spin" /> Generating Draft...
-                    </>
-                  ) : (
-                    <>
-                      Generate Draft
-                    </>
-                  )}
-                </button>
-              </form>
+          <div className="composer-container-wrapper">
+            {/* Responsive Sub-Tab Switcher for Chrome Sidepanel / Narrow Screens */}
+            <div className="composer-view-toggle">
+              <button
+                type="button"
+                className={`toggle-tab-btn ${composerSubTab === 'form' ? 'active' : ''}`}
+                onClick={() => setComposerSubTab('form')}
+              >
+                <FileText size={14} />
+                <span>Prompt & Setup</span>
+              </button>
+              <button
+                type="button"
+                className={`toggle-tab-btn ${composerSubTab === 'draft' ? 'active' : ''}`}
+                onClick={() => setComposerSubTab('draft')}
+              >
+                <Mail size={14} />
+                <span>Review Draft</span>
+                {draft && <span className="toggle-tab-dot" title="Draft Ready" />}
+              </button>
             </div>
 
-            {/* Right Half: Expansive Email Reading & Review Canvas */}
-            <div className="composer-right-pane">
-              {!draft ? (
-                /* Empty State Guide */
-                <div className="canvas-empty-state">
-                  <div className="empty-icon-wrap">
-                    <Mail size={32} />
+            <div className={`composer-split-container show-${composerSubTab}`}>
+              {/* Left Half: Form Studio */}
+              <div className={`composer-left-pane ${composerSubTab === 'form' ? 'tab-active' : 'tab-hidden'}`}>
+                {draft && (
+                  <div
+                    className="mobile-draft-ready-pill"
+                    onClick={() => setComposerSubTab('draft')}
+                    title="Switch to draft preview"
+                  >
+                    <span> Active draft ready for review</span>
+                    <span className="pill-action">Review Draft </span>
                   </div>
-                  <h3 className="empty-title">Ready for Your First Draft</h3>
-                  <p className="empty-desc">
-                    Fill in the recipient and context on the left, then click <strong>"Generate AI Draft"</strong>.
-                    Your complete email will populate right here
+                )}
+                <div className="pane-section-header">
+                  <h1 className="pane-title">
+                    <Mail size={18} color="#38bdf8" /> Compose & Configure
+                  </h1>
+                  <p className="pane-subtitle">
+                    Define your objective and key points.
                   </p>
                 </div>
-              ) : (
-                /* Active Email Canvas */
-                <div className="canvas-active-wrapper">
-                  {/* Meta Bar */}
-                  <div className="canvas-meta-bar">
-                    <div className="canvas-meta-left">
 
-                      <span className="meta-pill ">To: {draft.recipient}</span>
-
-                    </div>
-
-                    <div className="canvas-meta-right">
-                      <button
-                        type="button"
-                        className="icon-btn-ghost"
-                        onClick={handleCopyCanvasBody}
-                        title="Copy Email Text"
-                      >
-                        {copiedCanvas ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
-                        {copiedCanvas ? 'Copied' : 'Copy'}
-                      </button>
-                    </div>
+                <form onSubmit={handleGenerate}>
+                  {/* Recipient */}
+                  <div className="form-group">
+                    <label className="form-label">
+                      <span>Recipient Email</span>
+                      <span style={{ color: '#f43f5e' }}>*</span>
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="e.g. partner@company.com"
+                      value={recipient}
+                      onChange={(e) => setRecipient(e.target.value)}
+                      required
+                      disabled={isLoading}
+                      className="form-input"
+                    />
                   </div>
 
-                  {/* Body Container (Spacious, full-height readability) */}
-                  <div className="canvas-body-container">
-                    {/* Editable Subject */}
+                  {/* Subject / Goal */}
+                  <div className="form-group">
+                    <label className="form-label">
+                      <span>Primary Goal / Topic</span>
+                      <span style={{ color: '#f43f5e' }}>*</span>
+                    </label>
                     <input
                       type="text"
-                      value={draft.draft_subject}
-                      onChange={(e) => setDraft({ ...draft, draft_subject: e.target.value })}
-                      placeholder="Email Subject Line..."
-                      className="canvas-subject-field"
+                      placeholder="e.g. Follow-up on project roadmap proposal"
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      required
+                      disabled={isLoading}
+                      className="form-input"
                     />
+                  </div>
 
-                    {/* Full Body Textarea with High Readability */}
+                  {/* Tone Selector Pills */}
+                  <div className="form-group">
+                    <label className="form-label">Tone of Voice</label>
+                    <div className="tone-selector-grid">
+                      {[
+                        { id: 'professional', label: 'Professional' },
+                        { id: 'casual', label: 'Casual & Friendly' },
+                        { id: 'persuasive', label: 'Persuasive' },
+                        { id: 'urgent', label: 'Urgent' },
+                        { id: 'concise', label: 'Concise' },
+                      ].map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          className={`tone-pill-btn ${tone === t.id ? 'active' : ''}`}
+                          onClick={() => setTone(t.id as EmailFormData['tone'])}
+                          disabled={isLoading}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Context & Key Points */}
+                  <div className="form-group">
+                    <div className="form-label">
+                      <span>Context & Key Points</span>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                        {context.length} chars
+                      </span>
+                    </div>
                     <textarea
-                      value={draft.draft_body}
-                      onChange={(e) => setDraft({ ...draft, draft_body: e.target.value })}
-                      placeholder="Email body text..."
-                      className="canvas-textarea-full"
+                      rows={5}
+                      placeholder="Summarize key facts, meeting takeaways, deadlines, or requested next steps..."
+                      value={context}
+                      onChange={(e) => setContext(e.target.value)}
+                      required
+                      disabled={isLoading}
+                      className="form-input"
+                      style={{ resize: 'vertical' }}
                     />
                   </div>
 
-                  {/* Floating Action Bottom Bar */}
-                  <div className="canvas-actions-bar">
-                    <div className="actions-left-note">
-                      <ShieldCheck size={14} color="#34d399" />
-                      <span>Review required before dispatching</span>
+                  {/* Document Reference Dropzone */}
+                  <div className="form-group">
+                    <label className="form-label">Reference Document (Optional)</label>
+                    <label className={`dropzone-box ${file ? 'has-file' : ''}`}>
+                      <input
+                        type="file"
+                        accept=".pdf,.docx,.txt"
+                        style={{ display: 'none' }}
+                        onChange={(e) => setFile(e.target.files?.[0] || null)}
+                        disabled={isLoading}
+                      />
+                      <Paperclip size={18} color={file ? '#34d399' : '#64748b'} />
+                      <div style={{ flex: 1, fontSize: '0.84rem', color: file ? '#f8fafc' : '#64748b' }}>
+                        {file ? (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 600 }}>{file.name}</span>
+                            <button
+                              type="button"
+                              onClick={(ev) => {
+                                ev.preventDefault();
+                                setFile(null);
+                              }}
+                              className="icon-btn-ghost"
+                              style={{ color: '#f87171', padding: '2px 6px' }}
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          'Attach PDF, DOCX, or text notes for grounding'
+                        )}
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* Generate Button with Shimmer */}
+                  <button
+                    type="submit"
+                    disabled={isLoading || !recipient || !subject || !context}
+                    className="btn-generate-shimmer"
+                  >
+                    {isLoading ? (
+                      <>
+                        <RotateCw size={18} className="animate-spin" /> Generating Draft...
+                      </>
+                    ) : (
+                      <>
+                        Generate Draft
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
+
+              {/* Right Half: Expansive Email Reading & Review Canvas */}
+              <div className={`composer-right-pane ${composerSubTab === 'draft' ? 'tab-active' : 'tab-hidden'}`}>
+                {!draft ? (
+                  /* Empty State Guide */
+                  <div className="canvas-empty-state">
+                    <div className="empty-icon-wrap">
+                      <Mail size={32} />
+                    </div>
+                    <h3 className="empty-title">Ready for Your First Draft</h3>
+                    <p className="empty-desc">
+                      Fill in the recipient and context, then click <strong>"Generate Draft"</strong>.
+                      Your complete email will populate right here.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn-canvas-secondary mobile-only-btn"
+                      onClick={() => setComposerSubTab('form')}
+                      style={{ marginTop: 14 }}
+                    >
+                      <FileText size={14} /> Go to Compose Form
+                    </button>
+                  </div>
+                ) : (
+                  /* Active Email Canvas */
+                  <div className="canvas-active-wrapper">
+                    {/* Meta Bar */}
+                    <div className="canvas-meta-bar">
+                      <div className="canvas-meta-left">
+                        <button
+                          type="button"
+                          className="mobile-back-form-btn"
+                          onClick={() => setComposerSubTab('form')}
+                          title="Edit Prompt Inputs"
+                        >
+                          Edit Prompt
+                        </button>
+                        <span className="meta-pill">To: {draft.recipient}</span>
+                      </div>
+
+                      <div className="canvas-meta-right">
+                        <button
+                          type="button"
+                          className="icon-btn-ghost"
+                          onClick={handleCopyCanvasBody}
+                          title="Copy Email Text"
+                        >
+                          {copiedCanvas ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
+                          {copiedCanvas ? 'Copied' : 'Copy'}
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="actions-btn-group">
-                      <button
-                        type="button"
-                        className="btn-canvas-reject"
-                        onClick={handleOpenRejectModal}
-                        disabled={isLoading}
-                      >
-                        Reject Draft
-                      </button>
+                    {/* Body Container (Spacious, full-height readability) */}
+                    <div className="canvas-body-container">
+                      {/* Editable Subject */}
+                      <input
+                        type="text"
+                        value={draft.draft_subject}
+                        onChange={(e) => setDraft({ ...draft, draft_subject: e.target.value })}
+                        placeholder="Email Subject Line..."
+                        className="canvas-subject-field"
+                      />
 
-                      <button
-                        type="button"
-                        className="btn-canvas-secondary"
-                        onClick={handleRegenerate}
-                        disabled={isLoading}
-                      >
-                        <RotateCw size={14} /> Regenerate
-                      </button>
+                      {/* Full Body Textarea with High Readability */}
+                      <textarea
+                        value={draft.draft_body}
+                        onChange={(e) => setDraft({ ...draft, draft_body: e.target.value })}
+                        placeholder="Email body text..."
+                        className="canvas-textarea-full"
+                      />
+                    </div>
 
-                      <button
-                        type="button"
-                        className="btn-canvas-approve"
-                        onClick={handleOpenApproveModal}
-                        disabled={isLoading}
-                      >
-                        <Send size={15} /> Approve & Send via Gmail
-                      </button>
+                    {/* Floating Action Bottom Bar */}
+                    <div className="canvas-actions-bar">
+                      <div className="actions-left-note">
+                        <ShieldCheck size={14} color="#34d399" />
+                        <span>Review required before dispatching</span>
+                      </div>
+
+                      <div className="actions-btn-group">
+                        <button
+                          type="button"
+                          className="btn-canvas-approve"
+                          onClick={handleOpenApproveModal}
+                          disabled={isLoading}
+                        >
+                          <Send size={15} /> Approve & Send via Gmail
+                        </button>
+
+                        <div className="actions-secondary-row">
+                          <button
+                            type="button"
+                            className="btn-canvas-secondary"
+                            onClick={handleRegenerate}
+                            disabled={isLoading}
+                          >
+                            <RotateCw size={14} /> Regenerate
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn-canvas-reject"
+                            onClick={handleOpenRejectModal}
+                            disabled={isLoading}
+                          >
+                            Reject Draft
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         )}
