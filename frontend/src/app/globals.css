@@ -494,10 +494,21 @@
   }
 
   /* ====================================================================
-     Document Vault Grid
+     Document Vault Grid & Cards
      ==================================================================== */
   .vault-grid {
-    @apply grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-4;
+    @apply grid grid-cols-[repeat(auto-fill,minmax(340px,1fr))] gap-4 w-full;
+  }
+
+  .vault-card {
+    @apply flex flex-col p-4 bg-slate-900/65 border border-white/[0.08] rounded-xl gap-3 transition-all duration-200 backdrop-blur-md w-full overflow-hidden;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.25);
+  }
+
+  .vault-card:hover {
+    @apply border-sky-500/30;
+    box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.4), 0 0 20px -2px rgba(56, 189, 248, 0.08);
+    transform: translateY(-1px);
   }
 }
 

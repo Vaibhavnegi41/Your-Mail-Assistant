@@ -135,3 +135,16 @@ export async function getUserDocuments(): Promise<any[]> {
   return [];
 }
 
+export async function deleteDocumentFromVault(docId: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_URL}/documents/${docId}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    return response.ok;
+  } catch (err) {
+    console.error('Failed to delete document from vault:', err);
+    return false;
+  }
+}
+

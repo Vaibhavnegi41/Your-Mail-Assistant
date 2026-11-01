@@ -20,7 +20,7 @@ try:
 except ImportError:
     pass
 
-from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, status
+from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, status, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from langgraph.types import Command
@@ -35,7 +35,7 @@ try:
     )
     from backend.workflow import build_email_graph
     from backend.document_service import extract_text_from_file
-    from backend.rag_service import index_document_chunks, search_relevant_chunks
+    from backend.rag_service import index_document_chunks, search_relevant_chunks, delete_document_chunks
 except ImportError:
     from database import get_db, init_checkpointer, close_checkpointer
     from auth import get_current_user_id
@@ -46,7 +46,7 @@ except ImportError:
     )
     from workflow import build_email_graph
     from document_service import extract_text_from_file
-    from rag_service import index_document_chunks, search_relevant_chunks
+    from rag_service import index_document_chunks, search_relevant_chunks, delete_document_chunks
 
 
 @asynccontextmanager
@@ -155,6 +155,15 @@ def get_documents(user_id: str = Depends(get_current_user_id)):
     return {"documents": [d for d in USER_DOCUMENTS if d.get("user_id") == user_id]}
 
 
+@app.delete("/documents/{doc_id}")
+def delete_document(doc_id: str, user_id: str = Depends(get_current_user_id)):
+    """Delete document from catalog and wipe all associated chunks from Pinecone."""
+    global USER_DOCUMENTS
+    delete_document_chunks(user_id=user_id, doc_id=doc_id)
+    USER_DOCUMENTS = [d for d in USER_DOCUMENTS if not (d.get("id") == doc_id and d.get("user_id") == user_id)]
+    return {"status": "deleted", "doc_id": doc_id, "message": "Document and Pinecone vector chunks removed."}
+
+
 # In-memory store for email records and history
 EMAIL_RECORDS = []
 
@@ -163,6 +172,7 @@ EMAIL_RECORDS = []
 
 @app.post("/emails/generate", status_code=status.HTTP_202_ACCEPTED)
 async def generate_email(
+    background_tasks: BackgroundTasks,
     recipient: str = Form(...),
     subject: str = Form(...),
     tone: str = Form("professional"),
@@ -171,7 +181,7 @@ async def generate_email(
     doc_id: Optional[str] = Form(None),
     user_id: str = Depends(get_current_user_id)
 ):
-    """Create workflow and start LangGraph execution with Pinecone RAG retrieval."""
+    """Create workflow and start LangGraph execution with instant RAG retrieval."""
     workflow_id = str(uuid.uuid4())
     doc_text = ""
     assigned_doc_id = doc_id
@@ -179,15 +189,19 @@ async def generate_email(
     if file:
         doc_text = await extract_text_from_file(file)
         assigned_doc_id = str(uuid.uuid4())
+        filename = file.filename or "attachment"
+
+        # Store chunks directly into Pinecone under user's isolated namespace
         chunks_indexed = index_document_chunks(
             user_id=user_id,
             doc_id=assigned_doc_id,
-            filename=file.filename or "attachment",
+            filename=filename,
             text=doc_text
         )
+
         USER_DOCUMENTS.insert(0, {
             "id": assigned_doc_id,
-            "name": file.filename or "attachment",
+            "name": filename,
             "size": f"{len(doc_text) // 1024 or 1} KB",
             "extracted_length": len(doc_text),
             "chunks_indexed": chunks_indexed,

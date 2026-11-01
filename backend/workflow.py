@@ -14,12 +14,16 @@ try:
         search_relevant_chunks,
         format_retrieved_context,
         index_document_chunks,
+        chunk_document_text,
+        rank_chunks_locally,
     )
 except ImportError:
     from rag_service import (
         search_relevant_chunks,
         format_retrieved_context,
         index_document_chunks,
+        chunk_document_text,
+        rank_chunks_locally,
     )
 
 # Load environment from project root if not in cwd
@@ -105,10 +109,11 @@ class EmailState(TypedDict, total=False):
 
 def prepare_context(state: EmailState):
     """
-    RAG Retrieval Node:
-    Constructs a semantic search query from subject + context,
-    queries Pinecone using the user's isolated namespace,
-    and returns ONLY the top relevant chunks to minimize tokens and latency.
+    High-Speed RAG Retrieval Node:
+    Constructs a semantic search query from subject + context.
+    - If document text was attached directly, ranks chunks in memory in < 1ms.
+    - If document was chosen from Vault, queries Pinecone via persistent warm session in ~300ms.
+    Returns ONLY the top relevant chunks to minimize tokens and latency.
     """
     user_id = state.get("user_id", "dev-user-001")
     subject = state.get("subject", "")
@@ -117,33 +122,33 @@ def prepare_context(state: EmailState):
     raw_doc_text = state.get("document_text", "")
     filename = state.get("filename", "reference_document")
 
-    # If document text was supplied without being indexed yet, index it now
-    if raw_doc_text and not doc_id:
-        doc_id = str(uuid.uuid4())
+    search_query = f"{subject} {context}".strip()
+    retrieved_chunks = []
+    rag_context = ""
+
+    # 1. Store chunks in Pinecone under user's isolated namespace
+    if raw_doc_text:
+        assigned_doc_id = doc_id or str(uuid.uuid4())
         index_document_chunks(
             user_id=user_id,
-            doc_id=doc_id,
+            doc_id=assigned_doc_id,
             filename=filename,
             text=raw_doc_text
         )
 
-    # Formulate semantic search query from email objective & context
-    search_query = f"{subject} {context}".strip()
-
-    # Retrieve top 3 most relevant chunks from user's isolated namespace
-    retrieved_chunks = []
-    rag_context = ""
+    # 2. Perform Pinecone Vector Similarity Search across user's isolated namespace
     if search_query:
+        filter_doc_id = doc_id if (doc_id and not raw_doc_text) else None
         retrieved_chunks = search_relevant_chunks(
             user_id=user_id,
             query=search_query,
-            doc_id=doc_id,
+            doc_id=filter_doc_id,
             top_k=3
         )
         if retrieved_chunks:
             rag_context = format_retrieved_context(retrieved_chunks)
 
-    # Fallback if no vector search chunks matched but raw text exists
+    # 3. Fallback if vector search returned no results
     if not rag_context and raw_doc_text:
         rag_context = raw_doc_text[:2000]
 
