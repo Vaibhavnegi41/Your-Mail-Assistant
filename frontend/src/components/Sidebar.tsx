@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import { 
-  PenTool, 
-  Archive, 
-  FolderLock, 
+import {
+  PenTool,
+  Archive,
+  FolderLock,
   Sparkles,
   Zap,
   Mail
@@ -29,8 +29,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className="vscode-sidebar" aria-label="Main Navigation">
       <div className="sidebar-top">
         {/* Brand Logo */}
-        <div 
-          className="sidebar-logo" 
+        <div
+          className="sidebar-logo"
           onClick={() => onTabChange('composer')}
           title="AI Email Assistant"
         >
@@ -47,9 +47,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <PenTool size={20} />
             <span className="sidebar-label">Composer</span>
-            {pendingCount > 0 && (
-              <span className="sidebar-badge">{pendingCount}</span>
-            )}
           </button>
 
           <button
@@ -61,8 +58,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <Archive size={20} />
             <span className="sidebar-label">Records</span>
             {totalRecordsCount > 0 && (
-              <span 
-                className="sidebar-badge" 
+              <span
+                className="sidebar-badge"
                 style={{ background: '#3b82f6', fontSize: '9px' }}
               >
                 {totalRecordsCount > 99 ? '99+' : totalRecordsCount}
@@ -84,14 +81,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       <div className="sidebar-bottom">
         {/* Liveness Indicator */}
-        <div 
-          className="status-indicator-dot" 
+        <div
+          className="status-indicator-dot"
           title="System Operational"
         />
 
         {/* User Avatar */}
-        <div 
-          className="user-avatar-btn" 
+        <div
+          className="user-avatar-btn"
           title="Account / Workspace"
         >
           VN

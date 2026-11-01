@@ -1,14 +1,26 @@
 import os
-from typing import TypedDict, Literal, Optional
+import uuid
+from typing import TypedDict, Literal, Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import interrupt
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
-
-
 from pathlib import Path
+
+try:
+    from backend.rag_service import (
+        search_relevant_chunks,
+        format_retrieved_context,
+        index_document_chunks,
+    )
+except ImportError:
+    from rag_service import (
+        search_relevant_chunks,
+        format_retrieved_context,
+        index_document_chunks,
+    )
 
 # Load environment from project root if not in cwd
 project_root = Path(__file__).resolve().parent.parent
@@ -76,6 +88,10 @@ class EmailState(TypedDict, total=False):
     tone: str
     context: str
     document_text: str
+    doc_id: Optional[str]
+    filename: Optional[str]
+    rag_context: str
+    retrieved_chunks: List[Dict[str, Any]]
     draft_subject: str
     draft_body: str
     approved_subject: str
@@ -88,12 +104,54 @@ class EmailState(TypedDict, total=False):
 
 
 def prepare_context(state: EmailState):
-    """Validate and sanitize prompt context and document text."""
-    doc_text = state.get("document_text", "")
-    # Bound untrusted document text to avoid exceeding limits
-    truncated_text = doc_text[:10000] if doc_text else ""
+    """
+    RAG Retrieval Node:
+    Constructs a semantic search query from subject + context,
+    queries Pinecone using the user's isolated namespace,
+    and returns ONLY the top relevant chunks to minimize tokens and latency.
+    """
+    user_id = state.get("user_id", "dev-user-001")
+    subject = state.get("subject", "")
+    context = state.get("context", "")
+    doc_id = state.get("doc_id")
+    raw_doc_text = state.get("document_text", "")
+    filename = state.get("filename", "reference_document")
+
+    # If document text was supplied without being indexed yet, index it now
+    if raw_doc_text and not doc_id:
+        doc_id = str(uuid.uuid4())
+        index_document_chunks(
+            user_id=user_id,
+            doc_id=doc_id,
+            filename=filename,
+            text=raw_doc_text
+        )
+
+    # Formulate semantic search query from email objective & context
+    search_query = f"{subject} {context}".strip()
+
+    # Retrieve top 3 most relevant chunks from user's isolated namespace
+    retrieved_chunks = []
+    rag_context = ""
+    if search_query:
+        retrieved_chunks = search_relevant_chunks(
+            user_id=user_id,
+            query=search_query,
+            doc_id=doc_id,
+            top_k=3
+        )
+        if retrieved_chunks:
+            rag_context = format_retrieved_context(retrieved_chunks)
+
+    # Fallback if no vector search chunks matched but raw text exists
+    if not rag_context and raw_doc_text:
+        rag_context = raw_doc_text[:2000]
+
     return {
-        "document_text": truncated_text,
+        "doc_id": doc_id,
+        "rag_context": rag_context,
+        "retrieved_chunks": retrieved_chunks,
+        "document_text": rag_context,  # Preserve backwards compatibility
         "status": "context_prepared"
     }
 
@@ -104,9 +162,9 @@ def generate_email(state: EmailState):
     subject = state.get("subject", "Follow up")
     context = state.get("context", "")
     tone = state.get("tone", "professional")
-    doc_text = state.get("document_text", "")
+    doc_text = state.get("rag_context") or state.get("document_text", "")
 
-    document_section = f"\nAdditional Reference Document:\n{doc_text}" if doc_text else ""
+    document_section = f"\nRelevant Reference Context (Semantic Search Excerpts):\n{doc_text}" if doc_text else ""
 
     api_key = os.getenv("GROQ_API_KEY")
     candidates = get_candidate_models()

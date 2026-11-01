@@ -35,6 +35,7 @@ try:
     )
     from backend.workflow import build_email_graph
     from backend.document_service import extract_text_from_file
+    from backend.rag_service import index_document_chunks, search_relevant_chunks
 except ImportError:
     from database import get_db, init_checkpointer, close_checkpointer
     from auth import get_current_user_id
@@ -45,6 +46,7 @@ except ImportError:
     )
     from workflow import build_email_graph
     from document_service import extract_text_from_file
+    from rag_service import index_document_chunks, search_relevant_chunks
 
 
 @asynccontextmanager
@@ -103,22 +105,54 @@ def google_auth_callback(code: str, state: Optional[str] = None):
     return {"status": "connected", "message": "Google account linked successfully"}
 
 
-# --- Document Upload ---
+# --- Document Upload & Vault ---
+
+USER_DOCUMENTS = []
+
 
 @app.post("/documents")
 async def upload_document(
     file: UploadFile = File(...),
     user_id: str = Depends(get_current_user_id)
 ):
-    """Validate upload, extract bounded text, and return document reference."""
+    """Validate upload, chunk, embed, and index into Pinecone under user's isolated namespace."""
     extracted_text = await extract_text_from_file(file)
     doc_id = str(uuid.uuid4())
+    filename = file.filename or "uploaded_document"
+
+    chunks_indexed = index_document_chunks(
+        user_id=user_id,
+        doc_id=doc_id,
+        filename=filename,
+        text=extracted_text
+    )
+
+    doc_record = {
+        "id": doc_id,
+        "name": filename,
+        "size": f"{len(extracted_text) // 1024 or 1} KB",
+        "extracted_length": len(extracted_text),
+        "chunks_indexed": chunks_indexed,
+        "preview": extracted_text[:200],
+        "user_id": user_id,
+        "uploaded_at": datetime.now(timezone.utc).strftime("%b %d, %H:%M")
+    }
+    USER_DOCUMENTS.insert(0, doc_record)
+
     return {
         "document_id": doc_id,
-        "filename": file.filename,
+        "filename": filename,
         "extracted_length": len(extracted_text),
-        "preview": extracted_text[:200]
+        "chunks_indexed": chunks_indexed,
+        "preview": extracted_text[:200],
+        "namespace": f"user_{user_id}"
     }
+
+
+@app.get("/documents")
+def get_documents(user_id: str = Depends(get_current_user_id)):
+    """Retrieve indexed documents for current user."""
+    return {"documents": [d for d in USER_DOCUMENTS if d.get("user_id") == user_id]}
 
 
 # In-memory store for email records and history
@@ -134,18 +168,38 @@ async def generate_email(
     tone: str = Form("professional"),
     context: str = Form(...),
     file: Optional[UploadFile] = File(None),
+    doc_id: Optional[str] = Form(None),
     user_id: str = Depends(get_current_user_id)
 ):
-    """Create workflow and start LangGraph execution until review interrupt."""
+    """Create workflow and start LangGraph execution with Pinecone RAG retrieval."""
     workflow_id = str(uuid.uuid4())
     doc_text = ""
+    assigned_doc_id = doc_id
+
     if file:
         doc_text = await extract_text_from_file(file)
+        assigned_doc_id = str(uuid.uuid4())
+        chunks_indexed = index_document_chunks(
+            user_id=user_id,
+            doc_id=assigned_doc_id,
+            filename=file.filename or "attachment",
+            text=doc_text
+        )
+        USER_DOCUMENTS.insert(0, {
+            "id": assigned_doc_id,
+            "name": file.filename or "attachment",
+            "size": f"{len(doc_text) // 1024 or 1} KB",
+            "extracted_length": len(doc_text),
+            "chunks_indexed": chunks_indexed,
+            "preview": doc_text[:200],
+            "user_id": user_id,
+            "uploaded_at": datetime.now(timezone.utc).strftime("%b %d, %H:%M")
+        })
 
     config = {"configurable": {"thread_id": workflow_id}}
     graph = app.state.graph
 
-    # Invoke initial phase
+    # Invoke initial phase with Pinecone RAG parameters
     result = graph.invoke(
         {
             "user_id": user_id,
@@ -153,7 +207,9 @@ async def generate_email(
             "subject": subject,
             "tone": tone,
             "context": context,
+            "doc_id": assigned_doc_id,
             "document_text": doc_text,
+            "filename": file.filename if file else "attached_document",
             "version": 1
         },
         config=config

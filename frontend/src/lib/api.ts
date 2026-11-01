@@ -94,3 +94,44 @@ export async function getEmailRecords(): Promise<import('./types').EmailRecord[]
   return [];
 }
 
+export async function uploadDocumentToVault(file: File): Promise<{
+  document_id: string;
+  filename: string;
+  extracted_length: number;
+  chunks_indexed: number;
+  preview: string;
+  namespace: string;
+}> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_URL}/documents`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to upload document');
+  }
+
+  return response.json();
+}
+
+export async function getUserDocuments(): Promise<any[]> {
+  try {
+    const response = await fetch(`${API_URL}/documents`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return data.documents || [];
+    }
+  } catch (err) {
+    console.warn('Failed to fetch user documents:', err);
+  }
+  return [];
+}
+

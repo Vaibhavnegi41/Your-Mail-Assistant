@@ -15,3 +15,5 @@ google-api-python-client>=2.129.0
 cryptography>=42.0.7
 sqlalchemy>=2.0.30
 alembic>=1.13.1
+pinecone>=5.0.0
+langchain-text-splitters>=0.2.0
