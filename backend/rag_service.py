@@ -82,7 +82,6 @@ def get_index_host() -> Optional[str]:
     if _index_host:
         return _index_host
 
-    # Check if host is provided in env for instant zero-roundtrip resolution
     env_host = os.getenv("PINECONE_HOST", "").strip()
     if env_host:
         _index_host = env_host.replace("https://", "").replace("http://", "").strip("/")
@@ -286,7 +285,6 @@ def index_document_chunks(
     host = get_index_host()
     session = get_http_session()
 
-    # 1. Primary Strategy: Pinecone Documents API with connection pooling
     if api_key and host:
         try:
             headers = {
@@ -322,7 +320,6 @@ def index_document_chunks(
         except Exception as e:
             print(f"[Pinecone Documents API] Upsert notice: {e}")
 
-    # 2. Local memory fallback
     mem_records = [
         {
             "_id": f"{user_id}#{doc_id}#{i}",
@@ -357,7 +354,6 @@ def search_relevant_chunks(
     host = get_index_host()
     session = get_http_session()
 
-    # 1. Primary Strategy: Warm Session Pinecone Documents API search
     if api_key and host:
         try:
             headers = {
@@ -407,7 +403,6 @@ def search_relevant_chunks(
         except Exception as e:
             print(f"[Pinecone Documents API] Search notice: {e}")
 
-    # 2. In-memory search fallback
     return _search_in_memory(namespace, query, doc_id=doc_id, top_k=top_k)
 
 

@@ -12,7 +12,6 @@ interface VaultItem {
   chunks_indexed?: number;
   preview: string;
   uploadedAt: string;
-  namespace?: string;
 }
 
 interface VaultViewProps {
@@ -39,7 +38,6 @@ export const VaultView: React.FC<VaultViewProps> = ({ onUseInComposer }) => {
             chunks_indexed: d.chunks_indexed,
             preview: d.preview,
             uploadedAt: d.uploaded_at,
-            namespace: `user_${d.user_id || 'dev-user-001'}`
           }));
           setItems(mapped);
         } else {
@@ -52,7 +50,7 @@ export const VaultView: React.FC<VaultViewProps> = ({ onUseInComposer }) => {
               chunks_indexed: 6,
               preview: 'The Q3 project roadmap focuses on latency reduction in LangGraph HITL pipelines, Gmail API batch dispatching, and Pinecone vector retrieval...',
               uploadedAt: 'Today',
-              namespace: 'user_dev-user-001'
+
             }
           ]);
         }
@@ -79,7 +77,6 @@ export const VaultView: React.FC<VaultViewProps> = ({ onUseInComposer }) => {
         chunks_indexed: res.chunks_indexed,
         preview: res.preview,
         uploadedAt: 'Just now',
-        namespace: res.namespace
       };
       setItems((prev) => [newItem, ...prev.filter(d => d.id !== 'doc-sample-1')]);
     } catch (err: any) {
@@ -207,15 +204,6 @@ export const VaultView: React.FC<VaultViewProps> = ({ onUseInComposer }) => {
                     >
                       {doc.name}
                     </div>
-                    <div style={{
-                      fontSize: '0.74rem',
-                      color: '#64748b',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}>
-                      {doc.size} • {doc.uploadedAt}
-                    </div>
                   </div>
                 </div>
 
@@ -298,8 +286,7 @@ export const VaultView: React.FC<VaultViewProps> = ({ onUseInComposer }) => {
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap'
                 }}>
-                  <Database size={12} color="#818cf8" />
-                  <code style={{ color: '#a5b4fc', fontSize: '0.72rem' }}>{doc.namespace || 'user_dev-user-001'}</code>
+
                 </span>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
