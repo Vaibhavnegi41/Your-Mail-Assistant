@@ -111,9 +111,7 @@ export const VaultView: React.FC<VaultViewProps> = ({ onUseInComposer }) => {
       {/* Header bar */}
       <div className="pane-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h2 className="pane-title" style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <FolderLock size={22} color="#38bdf8" /> Pinecone Vector Context Vault
-          </h2>
+
           <p className="pane-subtitle" style={{ fontSize: '0.82rem', color: '#64748b', marginTop: 2 }}>
             Ground-truth documents chunked, embedded, and indexed under your isolated Pinecone namespace.
           </p>

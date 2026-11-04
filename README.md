@@ -22,7 +22,7 @@ An AI-powered email drafting assistant with a **Human-In-The-Loop (HITL)** appro
 ```text
 Email-Assistant/
 ├── backend/
-│   ├── __init__.py               # Python package initialization
+│   ├── __init__.py               
 │   ├── main.py                   # FastAPI application & REST endpoints
 │   ├── workflow.py               # LangGraph HITL StateGraph with interrupt() & resume
 │   ├── database.py               # SQLAlchemy database session & PostgresSaver checkpointer
