@@ -133,7 +133,7 @@ async def upload_document(
         "size": f"{len(extracted_text) // 1024 or 1} KB",
         "extracted_length": len(extracted_text),
         "chunks_indexed": chunks_indexed,
-        "preview": extracted_text[:200],
+        "preview": extracted_text[:1000],
         "user_id": user_id,
         "uploaded_at": datetime.now(timezone.utc).strftime("%b %d, %H:%M")
     }
@@ -144,7 +144,7 @@ async def upload_document(
         "filename": filename,
         "extracted_length": len(extracted_text),
         "chunks_indexed": chunks_indexed,
-        "preview": extracted_text[:200],
+        "preview": extracted_text[:1000],
         "namespace": f"user_{user_id}"
     }
 
@@ -205,7 +205,7 @@ async def generate_email(
             "size": f"{len(doc_text) // 1024 or 1} KB",
             "extracted_length": len(doc_text),
             "chunks_indexed": chunks_indexed,
-            "preview": doc_text[:200],
+            "preview": doc_text[:1000],
             "user_id": user_id,
             "uploaded_at": datetime.now(timezone.utc).strftime("%b %d, %H:%M")
         })

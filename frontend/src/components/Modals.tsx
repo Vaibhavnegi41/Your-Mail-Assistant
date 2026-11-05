@@ -1,14 +1,14 @@
 'use client';
 
 import React from 'react';
-import { 
-  Send, 
-  CheckCircle2, 
-  AlertTriangle, 
-  X, 
-  ExternalLink, 
-  Copy, 
-  Check, 
+import {
+  Send,
+  CheckCircle2,
+  AlertTriangle,
+  X,
+  ExternalLink,
+  Copy,
+  Check,
   ShieldCheck,
   AlertCircle
 } from 'lucide-react';
@@ -69,17 +69,17 @@ export const ApproveModal: React.FC<ApproveModalProps> = ({
         </div>
 
         <div className="modal-actions">
-          <button 
-            type="button" 
-            className="btn-canvas-secondary" 
+          <button
+            type="button"
+            className="btn-canvas-secondary"
             onClick={onClose}
             disabled={isLoading}
           >
             Cancel
           </button>
-          <button 
-            type="button" 
-            className="btn-canvas-approve" 
+          <button
+            type="button"
+            className="btn-canvas-approve"
             onClick={onConfirm}
             disabled={isLoading}
           >
@@ -155,8 +155,8 @@ export const DispatchedModal: React.FC<DispatchedModalProps> = ({
           {gmailMessageId && (
             <div className="modal-info-row">
               <span className="modal-info-label">Gmail Message ID</span>
-              <span 
-                className="modal-info-val" 
+              <span
+                className="modal-info-val"
                 style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: '#38bdf8' }}
                 onClick={handleCopyId}
                 title="Click to copy message ID"
@@ -175,16 +175,16 @@ export const DispatchedModal: React.FC<DispatchedModalProps> = ({
         </div>
 
         <div className="modal-actions">
-          <button 
-            type="button" 
-            className="btn-canvas-secondary" 
+          <button
+            type="button"
+            className="btn-canvas-secondary"
             onClick={onClose}
           >
             Compose Another
           </button>
-          <button 
-            type="button" 
-            className="btn-canvas-approve" 
+          <button
+            type="button"
+            className="btn-canvas-approve"
             onClick={onViewRecords}
           >
             <ExternalLink size={15} /> View in Mail Records
@@ -249,17 +249,17 @@ export const RejectModal: React.FC<RejectModalProps> = ({
         </div>
 
         <div className="modal-actions">
-          <button 
-            type="button" 
-            className="btn-canvas-secondary" 
+          <button
+            type="button"
+            className="btn-canvas-secondary"
             onClick={onClose}
             disabled={isLoading}
           >
             Keep Draft
           </button>
-          <button 
-            type="button" 
-            className="btn-canvas-reject" 
+          <button
+            type="button"
+            className="btn-canvas-reject"
             onClick={onConfirm}
             disabled={isLoading}
           >
@@ -302,16 +302,16 @@ export const RejectedResultModal: React.FC<RejectedResultModalProps> = ({
         </div>
 
         <div className="modal-actions">
-          <button 
-            type="button" 
-            className="btn-canvas-secondary" 
+          <button
+            type="button"
+            className="btn-canvas-secondary"
             onClick={onClose}
           >
             Back to Composer
           </button>
-          <button 
-            type="button" 
-            className="btn-canvas-secondary" 
+          <button
+            type="button"
+            className="btn-canvas-secondary"
             style={{ color: '#38bdf8' }}
             onClick={onViewRecords}
           >
@@ -358,9 +358,9 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({
         </div>
 
         <div className="modal-actions">
-          <button 
-            type="button" 
-            className="btn-canvas-secondary" 
+          <button
+            type="button"
+            className="btn-canvas-secondary"
             onClick={onClose}
           >
             Dismiss
@@ -414,8 +414,8 @@ export const InspectRecordModal: React.FC<InspectRecordModalProps> = ({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div 
-        className="modal-card" 
+      <div
+        className="modal-card"
         style={{ maxWidth: '680px', width: '90%' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -426,14 +426,12 @@ export const InspectRecordModal: React.FC<InspectRecordModalProps> = ({
             </div>
             <div>
               <h3>Email Record Details</h3>
-              <p style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                Workflow: {record.workflow_id}
-              </p>
+
             </div>
           </div>
-          <button 
-            type="button" 
-            className="icon-btn-ghost" 
+          <button
+            type="button"
+            className="icon-btn-ghost"
             onClick={onClose}
             style={{ padding: 4 }}
           >
@@ -447,13 +445,9 @@ export const InspectRecordModal: React.FC<InspectRecordModalProps> = ({
             <span className="modal-info-val" style={{ fontWeight: 600 }}>{record.recipient}</span>
           </div>
           <div className="modal-info-row">
-            <span className="modal-info-label">Subject</span>
-            <span className="modal-info-val">{record.subject || record.draft_subject}</span>
-          </div>
-          <div className="modal-info-row">
             <span className="modal-info-label">Status</span>
-            <span 
-              className="modal-info-val" 
+            <span
+              className="modal-info-val"
               style={{ color: getStatusColor(record.status), fontWeight: 600 }}
             >
               ● {record.status.toUpperCase()}
@@ -471,22 +465,47 @@ export const InspectRecordModal: React.FC<InspectRecordModalProps> = ({
           )}
         </div>
 
+        {/* Subject — full, no truncation, above body */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+        }}>
+          <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Subject
+          </span>
+          <div style={{
+            background: 'rgba(56, 189, 248, 0.05)',
+            border: '1px solid rgba(56, 189, 248, 0.18)',
+            borderRadius: '10px',
+            padding: '10px 14px',
+            fontSize: '0.95rem',
+            fontWeight: 600,
+            color: '#f1f5f9',
+            lineHeight: 1.5,
+            wordBreak: 'break-word',
+            overflowWrap: 'anywhere',
+          }}>
+            {record.subject || record.draft_subject}
+          </div>
+        </div>
+
         {/* Full Email Body Preview */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8' }}>Email Body</span>
-            <button 
-              type="button" 
-              className="icon-btn-ghost" 
+            <button
+              type="button"
+              className="icon-btn-ghost"
               onClick={handleCopyBody}
             >
               {copied ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
               {copied ? 'Copied' : 'Copy Body'}
             </button>
           </div>
-          <div 
-            style={{ 
-              background: 'rgba(15, 23, 42, 0.7)', 
+          <div
+            style={{
+              background: 'rgba(15, 23, 42, 0.7)',
               border: '1px solid rgba(255,255,255,0.08)',
               borderRadius: '8px',
               padding: '16px',
@@ -504,9 +523,9 @@ export const InspectRecordModal: React.FC<InspectRecordModalProps> = ({
 
         <div className="modal-actions">
           {onLoadInComposer && (
-            <button 
-              type="button" 
-              className="btn-canvas-secondary" 
+            <button
+              type="button"
+              className="btn-canvas-secondary"
               style={{ color: '#38bdf8' }}
               onClick={() => {
                 onLoadInComposer(record);
@@ -516,13 +535,7 @@ export const InspectRecordModal: React.FC<InspectRecordModalProps> = ({
               Load into Composer
             </button>
           )}
-          <button 
-            type="button" 
-            className="btn-canvas-secondary" 
-            onClick={onClose}
-          >
-            Close
-          </button>
+
         </div>
       </div>
     </div>

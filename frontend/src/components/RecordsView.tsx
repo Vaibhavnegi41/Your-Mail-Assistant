@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { 
-  Search, 
-  Eye, 
-  Copy, 
-  Check, 
-  Send, 
-  Clock, 
-  CheckCircle2, 
-  XCircle, 
+import {
+  Search,
+  Eye,
+  Copy,
+  Check,
+  Send,
+  Clock,
+  CheckCircle2,
+  XCircle,
   RotateCw,
   Mail,
   Calendar
@@ -41,7 +41,7 @@ export const RecordsView: React.FC<RecordsViewProps> = ({
 
   // Filtered records
   const filteredRecords = records.filter((r) => {
-    const matchesSearch = 
+    const matchesSearch =
       r.recipient.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (r.subject && r.subject.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (r.draft_subject && r.draft_subject.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -95,11 +95,11 @@ export const RecordsView: React.FC<RecordsViewProps> = ({
   const formatDate = (isoString: string) => {
     try {
       const d = new Date(isoString);
-      return d.toLocaleDateString(undefined, { 
-        month: 'short', 
-        day: 'numeric', 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      return d.toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
       });
     } catch {
       return isoString;
@@ -113,7 +113,7 @@ export const RecordsView: React.FC<RecordsViewProps> = ({
         <div className="stat-card">
           <div>
             <div className="stat-val">{totalCount}</div>
-            <div className="stat-label">Total Draft Workflows</div>
+            <div className="stat-label">Total Drafts</div>
           </div>
           <div className="stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa' }}>
             <Mail size={20} />
@@ -123,7 +123,7 @@ export const RecordsView: React.FC<RecordsViewProps> = ({
         <div className="stat-card">
           <div>
             <div className="stat-val" style={{ color: '#34d399' }}>{sentCount}</div>
-            <div className="stat-label">Dispatched via Gmail</div>
+            <div className="stat-label">Dispatched</div>
           </div>
           <div className="stat-icon" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#34d399' }}>
             <CheckCircle2 size={20} />
@@ -133,7 +133,7 @@ export const RecordsView: React.FC<RecordsViewProps> = ({
         <div className="stat-card">
           <div>
             <div className="stat-val" style={{ color: '#fbbf24' }}>{pendingCount}</div>
-            <div className="stat-label">Awaiting Approval</div>
+            <div className="stat-label">Pending</div>
           </div>
           <div className="stat-icon" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#fbbf24' }}>
             <Clock size={20} />
@@ -143,7 +143,7 @@ export const RecordsView: React.FC<RecordsViewProps> = ({
         <div className="stat-card">
           <div>
             <div className="stat-val" style={{ color: '#f87171' }}>{rejectedCount}</div>
-            <div className="stat-label">Rejected / Discarded</div>
+            <div className="stat-label">Rejected </div>
           </div>
           <div className="stat-icon" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#f87171' }}>
             <XCircle size={20} />
@@ -155,9 +155,9 @@ export const RecordsView: React.FC<RecordsViewProps> = ({
       <div className="records-toolbar">
         <div className="search-input-wrap">
           <Search size={16} className="search-icon" />
-          <input 
-            type="text" 
-            placeholder="Search by recipient or subject..." 
+          <input
+            type="text"
+            placeholder="Search by recipient or subject..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-field"
@@ -166,29 +166,29 @@ export const RecordsView: React.FC<RecordsViewProps> = ({
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div className="filter-pills-row">
-            <button 
-              type="button" 
+            <button
+              type="button"
               className={`filter-tab-btn ${selectedFilter === 'all' ? 'active' : ''}`}
               onClick={() => setSelectedFilter('all')}
             >
               All ({totalCount})
             </button>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className={`filter-tab-btn ${selectedFilter === 'sent' ? 'active' : ''}`}
               onClick={() => setSelectedFilter('sent')}
             >
               Sent ({sentCount})
             </button>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className={`filter-tab-btn ${selectedFilter === 'pending_review' ? 'active' : ''}`}
               onClick={() => setSelectedFilter('pending_review')}
             >
               Pending ({pendingCount})
             </button>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className={`filter-tab-btn ${selectedFilter === 'rejected' ? 'active' : ''}`}
               onClick={() => setSelectedFilter('rejected')}
             >
@@ -197,9 +197,9 @@ export const RecordsView: React.FC<RecordsViewProps> = ({
           </div>
 
           {onRefresh && (
-            <button 
-              type="button" 
-              className="icon-btn-ghost" 
+            <button
+              type="button"
+              className="icon-btn-ghost"
               onClick={onRefresh}
               title="Refresh Records"
             >
@@ -249,37 +249,15 @@ export const RecordsView: React.FC<RecordsViewProps> = ({
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                        <button 
-                          type="button" 
-                          className="icon-btn-ghost" 
+                        <button
+                          type="button"
+                          className="icon-btn-ghost"
                           onClick={() => onInspect(r)}
                           title="View Full Email"
                         >
                           <Eye size={15} /> Inspect
                         </button>
 
-                        <button 
-                          type="button" 
-                          className="icon-btn-ghost" 
-                          onClick={() => handleCopyBody(r)}
-                          title="Copy Body"
-                        >
-                          {copiedId === r.workflow_id ? (
-                            <Check size={14} color="#10b981" />
-                          ) : (
-                            <Copy size={14} />
-                          )}
-                        </button>
-
-                        <button 
-                          type="button" 
-                          className="icon-btn-ghost" 
-                          onClick={() => onLoadInComposer(r)}
-                          title="Load into Composer"
-                          style={{ color: '#38bdf8' }}
-                        >
-                          Load
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -301,35 +279,15 @@ export const RecordsView: React.FC<RecordsViewProps> = ({
                   <div className="record-card-footer">
                     <span className="record-card-date">{formatDate(r.created_at)}</span>
                     <div className="record-card-actions">
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         className="icon-btn-ghost compact"
                         onClick={() => onInspect(r)}
                         title="View Full Email"
                       >
                         <Eye size={13} /> View
                       </button>
-                      <button 
-                        type="button" 
-                        className="icon-btn-ghost compact"
-                        onClick={() => onLoadInComposer(r)}
-                        title="Load into Composer"
-                        style={{ color: '#38bdf8' }}
-                      >
-                        <Send size={13} /> Open
-                      </button>
-                      <button 
-                        type="button" 
-                        className="icon-btn-ghost compact"
-                        onClick={() => handleCopyBody(r)}
-                        title="Copy Body"
-                      >
-                        {copiedId === r.workflow_id ? (
-                          <Check size={13} color="#10b981" />
-                        ) : (
-                          <Copy size={13} />
-                        )}
-                      </button>
+
                     </div>
                   </div>
                 </div>
