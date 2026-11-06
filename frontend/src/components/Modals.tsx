@@ -10,7 +10,8 @@ import {
   Copy,
   Check,
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from 'lucide-react';
 import { EmailRecord, ReviewDraft } from '@/lib/types';
 
@@ -380,6 +381,7 @@ interface InspectRecordModalProps {
   record: EmailRecord | null;
   onClose: () => void;
   onLoadInComposer?: (record: EmailRecord) => void;
+  onDeleteRecord?: (workflowId: string) => void;
 }
 
 export const InspectRecordModal: React.FC<InspectRecordModalProps> = ({
@@ -387,8 +389,10 @@ export const InspectRecordModal: React.FC<InspectRecordModalProps> = ({
   record,
   onClose,
   onLoadInComposer,
+  onDeleteRecord,
 }) => {
   const [copied, setCopied] = React.useState(false);
+  const [confirmingDelete, setConfirmingDelete] = React.useState(false);
 
   if (!isOpen || !record) return null;
 
@@ -521,21 +525,84 @@ export const InspectRecordModal: React.FC<InspectRecordModalProps> = ({
           </div>
         </div>
 
-        <div className="modal-actions">
-          {onLoadInComposer && (
-            <button
-              type="button"
-              className="btn-canvas-secondary"
-              style={{ color: '#38bdf8' }}
-              onClick={() => {
-                onLoadInComposer(record);
-                onClose();
-              }}
-            >
-              Load into Composer
-            </button>
-          )}
+        <div className="modal-actions" style={{ justifyContent: 'space-between' }}>
+          {/* Left: Delete */}
+          <div>
+            {onDeleteRecord && !confirmingDelete && (
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(true)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '7px 14px', borderRadius: 8,
+                  fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  color: '#f87171',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Trash2 size={14} />
+                Delete Record
+              </button>
+            )}
+            {onDeleteRecord && confirmingDelete && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: '0.78rem', color: '#fca5a5' }}>Are you sure?</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDeleteRecord(record.workflow_id);
+                    setConfirmingDelete(false);
+                    onClose();
+                  }}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '6px 14px', borderRadius: 7,
+                    fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
+                    background: 'rgba(239, 68, 68, 0.2)',
+                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                    color: '#f87171',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Trash2 size={13} />
+                  Yes, Delete
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDelete(false)}
+                  style={{
+                    padding: '6px 12px', borderRadius: 7,
+                    fontSize: '0.8rem', fontWeight: 500, cursor: 'pointer',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    color: '#94a3b8',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
 
+          {/* Right: Load into Composer */}
+          <div>
+            {onLoadInComposer && (
+              <button
+                type="button"
+                className="btn-canvas-secondary"
+                style={{ color: '#38bdf8' }}
+                onClick={() => {
+                  onLoadInComposer(record);
+                  onClose();
+                }}
+              >
+                Load into Composer
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

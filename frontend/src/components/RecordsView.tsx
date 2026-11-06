@@ -67,26 +67,26 @@ export const RecordsView: React.FC<RecordsViewProps> = ({
       case 'sent':
       case 'approved':
         return (
-          <span className="meta-pill" style={{ color: '#34d399', background: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.3)' }}>
-            ● Sent
+          <span className="meta-pill" style={{ color: '#34d399' }}>
+            Sent
           </span>
         );
       case 'rejected':
         return (
-          <span className="meta-pill" style={{ color: '#f87171', background: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
-            ● Rejected
+          <span className="meta-pill" style={{ color: '#f87171' }}>
+            Rejected
           </span>
         );
       case 'pending_review':
         return (
-          <span className="meta-pill" style={{ color: '#fbbf24', background: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.3)' }}>
-            ● Review Pending
+          <span className="meta-pill" style={{ color: '#fbbf24' }}>
+            Pending
           </span>
         );
       default:
         return (
           <span className="meta-pill" style={{ color: '#60a5fa' }}>
-            ● {status}
+            {status}
           </span>
         );
     }

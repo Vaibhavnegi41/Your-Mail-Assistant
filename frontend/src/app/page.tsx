@@ -713,6 +713,11 @@ export default function Home() {
         record={inspectingRecord}
         onClose={() => setInspectingRecord(null)}
         onLoadInComposer={handleLoadRecordInComposer}
+        onDeleteRecord={(workflowId) => {
+          const updated = records.filter(r => r.workflow_id !== workflowId);
+          saveRecordsToCache(updated);
+          setInspectingRecord(null);
+        }}
       />
     </div>
   );
