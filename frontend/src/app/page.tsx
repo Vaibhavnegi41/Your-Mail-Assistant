@@ -522,14 +522,6 @@ export default function Home() {
                       Fill in the recipient and context, then click <strong>"Generate Draft"</strong>.
                       Your complete email will populate right here.
                     </p>
-                    <button
-                      type="button"
-                      className="btn-canvas-secondary mobile-only-btn"
-                      onClick={() => setComposerSubTab('form')}
-                      style={{ marginTop: 14 }}
-                    >
-                      <FileText size={14} /> Go to Compose Form
-                    </button>
                   </div>
                 ) : (
                   /* Active Email Canvas */
