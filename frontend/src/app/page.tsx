@@ -323,10 +323,7 @@ export default function Home() {
           </div>
 
           <div className="top-header-right">
-            <div className="status-badge-clean">
-              <span className="status-dot-active" />
-              <span>Ready</span>
-            </div>
+
             <div className="mobile-header-avatar" title="Vaibhav Negi">VN</div>
           </div>
         </header>

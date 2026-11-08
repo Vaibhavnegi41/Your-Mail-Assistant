@@ -425,6 +425,10 @@
     @apply w-full py-2 pl-9 pr-3 rounded-lg bg-slate-900/75 border border-white/10 text-slate-100 text-sm focus:outline-none focus:border-blue-500;
   }
 
+  .filter-actions-wrap {
+    @apply flex items-center gap-3;
+  }
+
   .filter-pills-row {
     @apply flex gap-1.5;
   }
@@ -767,12 +771,26 @@
     @apply min-w-0 w-full;
   }
 
+  .filter-actions-wrap {
+    @apply w-full;
+  }
+
+  .records-refresh-btn {
+    display: none !important;
+  }
+
   .filter-pills-row {
-    @apply overflow-x-auto pb-1 w-full;
+    @apply flex w-full gap-1.5 overflow-x-auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .filter-pills-row::-webkit-scrollbar {
+    display: none;
   }
 
   .filter-tab-btn {
-    @apply py-1 px-2.5 text-[11px] shrink-0;
+    @apply flex-1 py-1.5 px-1 text-[11px] text-center justify-center whitespace-nowrap;
   }
 
   .modal-card {

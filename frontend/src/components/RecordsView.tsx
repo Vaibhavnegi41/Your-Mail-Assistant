@@ -164,7 +164,7 @@ export const RecordsView: React.FC<RecordsViewProps> = ({
           />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="filter-actions-wrap">
           <div className="filter-pills-row">
             <button
               type="button"
@@ -199,7 +199,7 @@ export const RecordsView: React.FC<RecordsViewProps> = ({
           {onRefresh && (
             <button
               type="button"
-              className="icon-btn-ghost"
+              className="icon-btn-ghost records-refresh-btn"
               onClick={onRefresh}
               title="Refresh Records"
             >
