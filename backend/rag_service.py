@@ -416,8 +416,8 @@ def format_retrieved_context(chunks: List[Dict[str, Any]]) -> str:
         filename = c.get("filename", "Attached Document")
         text = c.get("text", "").strip()
         score = c.get("score", 0.0)
-        score_tag = f" (relevance: {score:.2f})" if score > 0 else ""
-        sections.append(f"--- [Relevant Excerpt {i} from {filename}{score_tag}] ---\n{text}")
+        score_tag = f' relevance="{score:.2f}"' if score > 0 else ""
+        sections.append(f'<excerpt index="{i}" source="{filename}"{score_tag}>\n{text}\n</excerpt>')
 
     return "\n\n".join(sections)
 

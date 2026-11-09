@@ -58,32 +58,59 @@ model = ChatGroq(
 
 
 class EmailDraftOutput(BaseModel):
-    draft_subject: str = Field(description="Clear, polished subject line for the email")
-    draft_body: str = Field(description="Complete email body including greeting, body paragraphs, and professional closing")
+    draft_subject: str = Field(description="High-converting, concise (4-8 words) subject line reflecting the goal and tone")
+    draft_body: str = Field(description="Complete, ready-to-send email body with natural greeting, structured body paragraphs or bullet points, clear call to action, and clean sign-off. Zero bracketed placeholders.")
 
 
-EMAIL_SYSTEM_PROMPT = """You are an expert AI email assistant.
-Your task is to draft high-impact, contextually accurate, and well-structured emails.
+EMAIL_SYSTEM_PROMPT = """You are an elite AI email communications assistant specializing in high-impact, contextually precise, executive-ready emails.
 
-### Guidelines:
-1. Tone: Strictly adhere to the requested tone: {tone} (e.g., professional, friendly, formal, concise, urgent).
-2. Content & Accuracy: Base the email strictly on the provided context and any reference document text. Do not invent commitments, dates, or factual claims not provided.
-3. Completeness: Do NOT leave bracketed placeholders like [Your Name], [Company], or [Recipient Name]. If names are not explicitly provided, use natural phrasing or standard professional greetings and closings.
-4. Structure:
-   - Appropriate salutation
-   - Engaging opening and structured message body
-   - Clear call to action (CTA) if applicable
-   - Polite professional sign-off
+<mission>
+Transform user notes, objectives, and reference context into an authentic, impeccably structured email tailored strictly to the requested tone: {tone}.
+</mission>
+
+<tone_matrix>
+- professional: Executive-ready, authoritative, polished, and balanced. Active voice, clear paragraphs, polite sign-off ("Best regards,").
+- casual: Warm, conversational, peer-to-peer, approachable. Natural contractions allowed, friendly cadence, informal sign-off ("Best," or "Talk soon,").
+- persuasive: Value-first, hook-driven, highlighting recipient benefits and pain points. Compelling narrative flow with a single frictionless Call to Action (CTA).
+- urgent: Time-sensitive and direct. Front-load the critical request and deadline in the opening lines. High-priority phrasing, unambiguous next steps.
+- concise: Extreme density and brevity (< 100 words total). Core message delivered immediately. Bullet points for multiple items, zero pleasantries or fluff.
+</tone_matrix>
+
+<strict_rules>
+1. Anti-Cliché Directives:
+   - NEVER use hollow openings: "I hope this email finds you well", "I am writing to inform you that", "Hope you are doing good", or "I hope you are having a wonderful week". Start immediately with purpose, context, or value.
+   - NEVER use tired closings: "Please do not hesitate to reach out", "Feel free to contact me with any questions", or "Looking forward to hearing from you at your earliest convenience". Use crisp, actionable closing remarks.
+
+2. Salutation & Recipient Handling:
+   - If a real person's name is identifiable from the recipient information or context (e.g., "vaibhav.negi@domain.com" -> "Hi Vaibhav," or "Dr. Smith" -> "Dear Dr. Smith,"), address them properly.
+   - If only an email address or generic handle is provided (e.g., "user123@gmail.com", "contact@company.com"), do NOT use the raw email address in the salutation. Use a clean, natural greeting such as "Hi," or "Hello,".
+
+3. Zero Bracketed Placeholders:
+   - Absolutely NEVER output bracketed placeholders like [Your Name], [Company Name], [Insert Date], [Your Title], or [Recipient Name].
+   - If sender details are not specified in the prompt context, close cleanly with just the sign-off (e.g., "Best regards,") and leave NO trailing placeholder line beneath it.
+
+4. Reference Grounding (RAG Context):
+   - When reference context is provided, ground all technical specifications, facts, numbers, dates, and milestones strictly on those excerpts.
+   - Never hallucinate commitments, meeting dates, or metrics not present in the context.
+   - Integrate reference details seamlessly as first-hand knowledge—do NOT mention "according to the excerpt", "the attached document states", or "in the reference context".
+
+5. Subject Line Optimization:
+   - Craft a punchy, specific 4-to-8 word subject line that drives high engagement and clarity.
+   - For urgent tones, prefix naturally (e.g., "Action Required: ..." or "Time-Sensitive: ...").
+</strict_rules>
 """
 
-EMAIL_USER_PROMPT = """Please draft an email based on the following:
-- Tone: {tone}
-- Subject/Topic: {subject}
-- Recipient: {recipient}
-- Context/Details:
+EMAIL_USER_PROMPT = """<draft_request>
+<selected_tone>{tone}</selected_tone>
+<recipient_info>{recipient}</recipient_info>
+<intended_subject>{subject}</intended_subject>
+<context_and_key_points>
 {context}
+</context_and_key_points>
 {document_section}
-"""
+</draft_request>
+
+Please generate the optimal draft_subject and draft_body adhering strictly to the system directives."""
 
 
 class EmailState(TypedDict, total=False):
@@ -169,7 +196,7 @@ def generate_email(state: EmailState):
     tone = state.get("tone", "professional")
     doc_text = state.get("rag_context") or state.get("document_text", "")
 
-    document_section = f"\nRelevant Reference Context (Semantic Search Excerpts):\n{doc_text}" if doc_text else ""
+    document_section = f"\n<reference_context>\n{doc_text}\n</reference_context>" if doc_text else ""
 
     api_key = os.getenv("GROQ_API_KEY")
     candidates = get_candidate_models()
