@@ -100,8 +100,48 @@ export const ApproveModal: React.FC<ApproveModalProps> = ({
 
 
 /* --------------------------------------------------------------------
-   2. Email Dispatched Success Modal
+   2. Email Dispatched Success Modal (with 2s bottom-to-top gift sparkles)
    -------------------------------------------------------------------- */
+interface SparkleParticle {
+  id: number;
+  left: string;
+  tx: string;
+  ty: string;
+  rot: string;
+  sc: number;
+  delay: string;
+  dur: string;
+  color: string;
+  shape: 'star' | 'dot' | 'ribbon';
+}
+
+const SPARKLE_COLORS = ['#34d399', '#38bdf8', '#fbbf24', '#a78bfa', '#f472b6', '#fde047'];
+
+const GIFT_SPARKLES: SparkleParticle[] = Array.from({ length: 34 }, (_, idx) => {
+  const spread = (idx / 33) * 2 - 1; // -1 to +1 across the spread fan
+  const wave = ((idx * 7) % 11) / 10; // deterministic variation 0.0..1.0
+  const startLeft = 50 + spread * 24 + (wave - 0.5) * 10;
+  const tx = (spread * 36 + (wave - 0.5) * 18).toFixed(1) + 'vw';
+  const ty = (-(62 + wave * 34)).toFixed(1) + 'vh';
+  const rot = Math.round((spread * 260) + (wave * 180)) + 'deg';
+  const sc = Number((0.75 + wave * 0.65).toFixed(2));
+  const delay = (wave * 0.35).toFixed(2) + 's';
+  const dur = (1.45 + (1 - wave) * 0.5).toFixed(2) + 's';
+  const shapes: Array<'star' | 'dot' | 'ribbon'> = ['star', 'star', 'dot', 'ribbon'];
+  return {
+    id: idx,
+    left: `${startLeft.toFixed(1)}%`,
+    tx,
+    ty,
+    rot,
+    sc,
+    delay,
+    dur,
+    color: SPARKLE_COLORS[idx % SPARKLE_COLORS.length],
+    shape: shapes[idx % shapes.length],
+  };
+});
+
 interface DispatchedModalProps {
   isOpen: boolean;
   recipient: string;
@@ -120,6 +160,19 @@ export const DispatchedModal: React.FC<DispatchedModalProps> = ({
   onViewRecords,
 }) => {
   const [copied, setCopied] = React.useState(false);
+  const [showSparkles, setShowSparkles] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      setShowSparkles(false);
+      return;
+    }
+    setShowSparkles(true);
+    const timer = window.setTimeout(() => {
+      setShowSparkles(false);
+    }, 2000);
+    return () => window.clearTimeout(timer);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -133,9 +186,61 @@ export const DispatchedModal: React.FC<DispatchedModalProps> = ({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
+      {showSparkles && (
+        <div className="sparkles-stage" aria-hidden="true">
+          {GIFT_SPARKLES.map((sp) => (
+            <span
+              key={sp.id}
+              className="gift-sparkle"
+              style={
+                {
+                  left: sp.left,
+                  color: sp.color,
+                  '--tx': sp.tx,
+                  '--ty': sp.ty,
+                  '--rot': sp.rot,
+                  '--sc': sp.sc,
+                  '--delay': sp.delay,
+                  '--dur': sp.dur,
+                  filter: `drop-shadow(0 0 6px ${sp.color})`,
+                } as React.CSSProperties
+              }
+            >
+              {sp.shape === 'star' && (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 1L14.6 9.4L23 12L14.6 14.6L12 23L9.4 14.6L1 12L9.4 9.4L12 1Z" />
+                </svg>
+              )}
+              {sp.shape === 'dot' && (
+                <span
+                  style={{
+                    display: 'block',
+                    width: 8,
+                    height: 8,
+                    borderRadius: '9999px',
+                    background: sp.color,
+                  }}
+                />
+              )}
+              {sp.shape === 'ribbon' && (
+                <span
+                  style={{
+                    display: 'block',
+                    width: 6,
+                    height: 14,
+                    borderRadius: 3,
+                    background: sp.color,
+                  }}
+                />
+              )}
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <div className="modal-icon-badge green">
+          <div className={`modal-icon-badge green ${showSparkles ? 'gift-badge-pop' : ''}`}>
             <CheckCircle2 size={24} />
           </div>
           <div className="modal-title-group">

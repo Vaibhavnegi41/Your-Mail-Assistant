@@ -53,10 +53,12 @@ export default function Home() {
 
   // Form Inputs
   const [recipient, setRecipient] = useState('');
+  const [senderName, setSenderName] = useState('Vaibhav Negi');
   const [subject, setSubject] = useState('');
   const [tone, setTone] = useState<EmailFormData['tone']>('professional');
   const [context, setContext] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const lastGeneratedSubjectRef = React.useRef<string>('');
 
   // Records & History
   const [records, setRecords] = useState<EmailRecord[]>([]);
@@ -103,6 +105,11 @@ export default function Home() {
     };
 
     fetchRecords();
+
+    try {
+      const savedSender = localStorage.getItem('sender_name_cache');
+      if (savedSender !== null) setSenderName(savedSender);
+    } catch {}
   }, []);
 
   // Save records to cache
@@ -118,9 +125,10 @@ export default function Home() {
   // ------------------------------------------------------------------
   // Generation Handler
   // ------------------------------------------------------------------
-  const handleGenerate = async (e?: React.FormEvent) => {
+  const handleGenerate = async (e?: React.FormEvent, overrideSubject?: string) => {
     if (e) e.preventDefault();
-    if (!recipient || !subject || !context) {
+    const activeSubject = (overrideSubject ?? subject).trim();
+    if (!recipient || !activeSubject || !context) {
       setErrorMessage('Please fill in Recipient, Subject, and Context to generate.');
       setIsErrorModalOpen(true);
       return;
@@ -132,7 +140,8 @@ export default function Home() {
     try {
       const data = new FormData();
       data.append('recipient', recipient);
-      data.append('subject', subject);
+      data.append('sender_name', senderName.trim());
+      data.append('subject', activeSubject);
       data.append('tone', tone);
       data.append('context', context);
       if (file) {
@@ -144,6 +153,7 @@ export default function Home() {
 
       // Fetch the real LLM-generated draft
       const reviewData = await getReviewPayload(res.workflow_id);
+      lastGeneratedSubjectRef.current = reviewData.draft_subject;
       setDraft(reviewData);
       setStatus('pending_review');
       setComposerSubTab('draft');
@@ -252,7 +262,11 @@ export default function Home() {
   // Regenerate Variation
   // ------------------------------------------------------------------
   const handleRegenerate = async () => {
-    await handleGenerate();
+    const editedRightSubject =
+      draft?.draft_subject && draft.draft_subject.trim() !== lastGeneratedSubjectRef.current
+        ? draft.draft_subject.trim()
+        : undefined;
+    await handleGenerate(undefined, editedRightSubject);
   };
 
   // ------------------------------------------------------------------
@@ -374,21 +388,43 @@ export default function Home() {
                 </div>
 
                 <form onSubmit={handleGenerate}>
-                  {/* Recipient */}
-                  <div className="form-group">
-                    <label className="form-label">
-                      <span>Recipient Email</span>
-                      <span style={{ color: '#f43f5e' }}>*</span>
-                    </label>
-                    <input
-                      type="email"
-                      placeholder="e.g. partner@company.com"
-                      value={recipient}
-                      onChange={(e) => setRecipient(e.target.value)}
-                      required
-                      disabled={isLoading}
-                      className="form-input"
-                    />
+                  {/* Recipient & Sender */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="form-group">
+                      <label className="form-label">
+                        <span>Recipient Email</span>
+                        <span style={{ color: '#f43f5e' }}>*</span>
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="e.g. partner@company.com"
+                        value={recipient}
+                        onChange={(e) => setRecipient(e.target.value)}
+                        required
+                        disabled={isLoading}
+                        className="form-input"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">
+                        <span>Your Name (Sign-off)</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Vaibhav Negi"
+                        value={senderName}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSenderName(val);
+                          try {
+                            localStorage.setItem('sender_name_cache', val);
+                          } catch {}
+                        }}
+                        disabled={isLoading}
+                        className="form-input"
+                      />
+                    </div>
                   </div>
 
                   {/* Subject / Goal */}
@@ -535,6 +571,9 @@ export default function Home() {
                           Edit Prompt
                         </button>
                         <span className="meta-pill">To: {draft.recipient}</span>
+                        {senderName.trim() && (
+                          <span className="meta-pill">From: {senderName.trim()}</span>
+                        )}
                       </div>
 
                       <div className="canvas-meta-right">

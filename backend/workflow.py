@@ -52,56 +52,71 @@ def get_candidate_models():
 model = ChatGroq(
     model=MODEL_NAME,
     api_key=GROQ_API_KEY,
-    temperature=0.2,
-    max_tokens=1024
+    temperature=0.25,
+    max_tokens=1500
 )
 
 
 class EmailDraftOutput(BaseModel):
-    draft_subject: str = Field(description="High-converting, concise (4-8 words) subject line reflecting the goal and tone")
-    draft_body: str = Field(description="Complete, ready-to-send email body with natural greeting, structured body paragraphs or bullet points, clear call to action, and clean sign-off. Zero bracketed placeholders.")
+    draft_subject: str = Field(
+        description="Clear, well-crafted subject line (5-10 words) preserving key qualifiers such as urgency, dates, or core intent."
+    )
+    draft_body: str = Field(
+        description="Complete, well-formatted email body with greeting, well-developed multi-paragraph structure (including bullet points where helpful), polite closing CTA, and a full sign-off block ending with the sender name on the line below the closing phrase."
+    )
 
 
-EMAIL_SYSTEM_PROMPT = """You are an elite AI email communications assistant specializing in high-impact, contextually precise, executive-ready emails.
+EMAIL_SYSTEM_PROMPT = """You are an elite AI email communications assistant specializing in drafting thorough, well-formatted, natural, and ready-to-send emails.
 
 <mission>
-Transform user notes, objectives, and reference context into an authentic, impeccably structured email tailored strictly to the requested tone: {tone}.
+Transform the user's goal/topic, context notes, and any reference documents into a complete, well-developed, and cleanly formatted email tailored strictly to the requested tone: {tone}.
 </mission>
 
-<tone_matrix>
-- professional: Executive-ready, authoritative, polished, and balanced. Active voice, clear paragraphs, polite sign-off ("Best regards,").
-- casual: Warm, conversational, peer-to-peer, approachable. Natural contractions allowed, friendly cadence, informal sign-off ("Best," or "Talk soon,").
-- persuasive: Value-first, hook-driven, highlighting recipient benefits and pain points. Compelling narrative flow with a single frictionless Call to Action (CTA).
-- urgent: Time-sensitive and direct. Front-load the critical request and deadline in the opening lines. High-priority phrasing, unambiguous next steps.
-- concise: Extreme density and brevity (< 100 words total). Core message delivered immediately. Bullet points for multiple items, zero pleasantries or fluff.
-</tone_matrix>
+<tone_and_length_guidelines>
+- professional: Polished, courteous, executive-ready, and thorough (150–230 words across 3–4 well-structured paragraphs, using bullet points where helpful). End with a closing like "Best regards," followed by the sender's name.
+- casual: Warm, friendly, conversational, yet still complete and well-structured (130–210 words across 3 clear paragraphs; bullet points when outlining transition/coverage steps or key items). End with a friendly closing like "Best regards," or "Warm regards," followed by the sender's name.
+- persuasive: Value-first, compelling narrative highlighting benefits, addressing likely questions, and ending with a clear Call to Action (150–230 words across 3–4 paragraphs). End with "Best regards," followed by the sender's name.
+- urgent: Direct and time-sensitive, front-loading the urgent situation, reason, and timeframe in the opening lines, followed by concrete next steps and coverage details (130–200 words). End with "Best regards," or "Regards," followed by the sender's name.
+- concise: Crisp, focused, and compact while remaining polite and complete (75–110 words across 2 short paragraphs or clean bullets). End with "Best regards," or "Thanks," followed by the sender's name.
+</tone_and_length_guidelines>
 
-<strict_rules>
-1. Anti-Cliché Directives:
-   - NEVER use hollow openings: "I hope this email finds you well", "I am writing to inform you that", "Hope you are doing good", or "I hope you are having a wonderful week". Start immediately with purpose, context, or value.
-   - NEVER use tired closings: "Please do not hesitate to reach out", "Feel free to contact me with any questions", or "Looking forward to hearing from you at your earliest convenience". Use crisp, actionable closing remarks.
+<formatting_and_structure_rules>
+1. Sufficient Depth & Proper Email Structure (CRITICAL):
+   - Do NOT produce a bare 2- or 3-sentence stub (unless tone is explicitly "concise").
+   - Synthesize BOTH <intended_subject> AND <context_and_key_points> into a full, well-paced, multi-paragraph email:
+     * Salutation: Clean greeting on its own line.
+     * Opening Paragraph: Clearly state the primary purpose/request, including urgency, cause, and full timeframe/dates mentioned (e.g., if a month like "December 2026" is specified, clearly state the full period such as December 1 to December 31, 2026).
+     * Middle Section (Elaboration / Key Points): Provide clear, thoughtful context and practical details relevant to the request. When outlining 2–4 distinct deliverables, preparations, or transition steps (e.g., handover plan, task completion, availability during absence), format them cleanly as `- ` bullet points with a brief intro line for crisp visual formatting.
+     * Closing Paragraph: Polite request for approval, confirmation, or reply, along with genuine appreciation.
+   - Separate greeting, paragraphs, bullet lists, and sign-off with blank lines (`\n\n`) so the email looks cleanly formatted.
 
-2. Salutation & Recipient Handling:
-   - If a real person's name is identifiable from the recipient information or context (e.g., "vaibhav.negi@domain.com" -> "Hi Vaibhav," or "Dr. Smith" -> "Dear Dr. Smith,"), address them properly.
-   - If only an email address or generic handle is provided (e.g., "user123@gmail.com", "contact@company.com"), do NOT use the raw email address in the salutation. Use a clean, natural greeting such as "Hi," or "Hello,".
+2. Strict Anti-Hallucination & Grounding:
+   - NEVER invent unmentioned people's names (even in parentheses), unmentioned dates/deadlines (e.g., do not invent dates like "November 25"), unmentioned company names, or fabricated statistics/schedules.
+   - Only reference dates explicitly provided or directly implied by the user (e.g., December 1–31, 2026 when the user specifies "complete December 2026 month").
+   - Write natural, accurate logistical statements without fabricating specifics (e.g., "I will document all active tasks and coordinate a smooth handover before my leave begins", "I will remain reachable by email for any urgent questions").
+   - When <reference_context> is provided, ground factual claims strictly on those excerpts and integrate them naturally without saying "according to the excerpt" or "the attached document states".
 
-3. Zero Bracketed Placeholders:
-   - Absolutely NEVER output bracketed placeholders like [Your Name], [Company Name], [Insert Date], [Your Title], or [Recipient Name].
-   - If sender details are not specified in the prompt context, close cleanly with just the sign-off (e.g., "Best regards,") and leave NO trailing placeholder line beneath it.
+3. Salutation & Recipient Handling:
+   - If a real person's name is identifiable from <recipient_info> or <context_and_key_points> (e.g., "vaibhav.negi@company.com" -> "Hi Vaibhav," or "Dr. Smith" -> "Dear Dr. Smith,"), use it.
+   - If only a generic or numeric email handle is given (e.g., "negivaibhav2005@gmail.com", "contact@company.com"), do NOT put the raw email address in the greeting; use "Hi," or "Hello,".
 
-4. Reference Grounding (RAG Context):
-   - When reference context is provided, ground all technical specifications, facts, numbers, dates, and milestones strictly on those excerpts.
-   - Never hallucinate commitments, meeting dates, or metrics not present in the context.
-   - Integrate reference details seamlessly as first-hand knowledge—do NOT mention "according to the excerpt", "the attached document states", or "in the reference context".
+4. Complete Sender Sign-Off Block (CRITICAL — NEVER OMIT):
+   - EVERY generated email MUST end with a complete sign-off block containing BOTH an appropriate closing phrase (e.g., "Best regards,") AND `{sender_display}` on the very next line:
+     Best regards,
+     {sender_display}
+   - NEVER leave a bare closing phrase ("Best," or "Best regards,") with nothing beneath it.
 
-5. Subject Line Optimization:
-   - Craft a punchy, specific 4-to-8 word subject line that drives high engagement and clarity.
-   - For urgent tones, prefix naturally (e.g., "Action Required: ..." or "Time-Sensitive: ...").
-</strict_rules>
+5. Subject Line Quality:
+   - Craft a clear, compelling subject line (5–10 words) that preserves important qualifiers from <intended_subject> (such as urgency, timeframe, or reason—for example, "Urgent: One-Month Medical Leave Request (December 2026)").
+
+6. Anti-Cliché Rule:
+   - Avoid hollow filler phrases like "I hope this email finds you well" or "Please do not hesitate to contact me". Open directly and respectfully with the purpose.
+</formatting_and_structure_rules>
 """
 
 EMAIL_USER_PROMPT = """<draft_request>
 <selected_tone>{tone}</selected_tone>
+<sender_name>{sender_display}</sender_name>
 <recipient_info>{recipient}</recipient_info>
 <intended_subject>{subject}</intended_subject>
 <context_and_key_points>
@@ -110,11 +125,12 @@ EMAIL_USER_PROMPT = """<draft_request>
 {document_section}
 </draft_request>
 
-Please generate the optimal draft_subject and draft_body adhering strictly to the system directives."""
+Please generate a complete, well-formatted draft_subject and draft_body adhering strictly to all formatting, depth, grounding, and sender sign-off rules."""
 
 
 class EmailState(TypedDict, total=False):
     recipient: str
+    sender_name: Optional[str]
     subject: str
     tone: str
     context: str
@@ -191,6 +207,8 @@ def prepare_context(state: EmailState):
 def generate_email(state: EmailState):
     """Call Groq LLM with structured output prompt to generate draft email."""
     recipient = state.get("recipient", "")
+    sender_name = (state.get("sender_name") or "").strip()
+    sender_display = sender_name if sender_name else os.getenv("DEFAULT_SENDER_NAME", "").strip() or "[Your Name]"
     subject = state.get("subject", "Follow up")
     context = state.get("context", "")
     tone = state.get("tone", "professional")
@@ -215,13 +233,14 @@ def generate_email(state: EmailState):
             chat_model = ChatGroq(
                 model=candidate_name,
                 api_key=api_key,
-                temperature=0.2,
-                max_tokens=1024
+                temperature=0.25,
+                max_tokens=1500
             )
             structured_model = chat_model.with_structured_output(EmailDraftOutput)
             chain = prompt | structured_model
             result: EmailDraftOutput = chain.invoke({
                 "tone": tone,
+                "sender_display": sender_display,
                 "subject": subject,
                 "recipient": recipient or "Valued Contact",
                 "context": context or "Follow up on our previous conversation.",
@@ -231,6 +250,15 @@ def generate_email(state: EmailState):
             draft_subject = result.draft_subject.strip()
             draft_body = result.draft_body.strip()
             if draft_subject and draft_body:
+                # Ensure the sign-off always includes the sender line below the closing phrase
+                lines = [ln.strip() for ln in draft_body.splitlines() if ln.strip()]
+                if lines and lines[-1].rstrip(",!").lower() in {
+                    "best", "best regards", "warm regards", "kind regards",
+                    "regards", "sincerely", "thanks", "thank you", "cheers"
+                }:
+                    draft_body = f"{draft_body}\n{sender_display}"
+                elif sender_display not in draft_body:
+                    draft_body = f"{draft_body}\n\nBest regards,\n{sender_display}"
                 break
         except Exception as exc:
             last_exc = exc
@@ -239,9 +267,9 @@ def generate_email(state: EmailState):
         print(f"Warning: All LLM models failed (last error: {last_exc}). Falling back to template draft.")
         draft_subject = f"[{tone.capitalize()}] {subject}"
         draft_body = (
-            f"Dear Recipient,\n\n"
+            f"Hi,\n\n"
             f"{context}\n\n"
-            f"Best regards,\nSender"
+            f"Best regards,\n{sender_display}"
         )
 
     return {

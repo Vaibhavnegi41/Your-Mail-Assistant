@@ -177,6 +177,7 @@ async def generate_email(
     subject: str = Form(...),
     tone: str = Form("professional"),
     context: str = Form(...),
+    sender_name: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
     doc_id: Optional[str] = Form(None),
     user_id: str = Depends(get_current_user_id)
@@ -218,6 +219,7 @@ async def generate_email(
         {
             "user_id": user_id,
             "recipient": recipient,
+            "sender_name": sender_name or "",
             "subject": subject,
             "tone": tone,
             "context": context,
