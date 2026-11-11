@@ -376,30 +376,25 @@ def search_relevant_chunks(
                 search_payload["filter"] = {"doc_id": doc_id}
 
             url = f"https://{host}/namespaces/{namespace}/documents/search"
-            max_attempts = 4 if doc_id else 1
-            for attempt in range(max_attempts):
-                resp = session.post(url, headers=headers, json=search_payload, timeout=8)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    matches = data.get("matches", [])
-                    if matches:
-                        results = []
-                        for m in matches:
-                            text = m.get("chunk_text") or m.get("text", "")
-                            if text:
-                                results.append({
-                                    "text": text,
-                                    "filename": m.get("filename", "Attached Document"),
-                                    "doc_id": m.get("doc_id", ""),
-                                    "chunk_index": int(m.get("chunk_index", 0)),
-                                    "score": float(m.get("_score", 0.0))
-                                })
-                        if results:
-                            print(f"[Pinecone Documents API] Retrieved {len(results)} chunks via vector similarity search.")
-                            return results
-                if attempt < max_attempts - 1:
-                    import time
-                    time.sleep(0.4)
+            resp = session.post(url, headers=headers, json=search_payload, timeout=5)
+            if resp.status_code == 200:
+                data = resp.json()
+                matches = data.get("matches", [])
+                if matches:
+                    results = []
+                    for m in matches:
+                        text = m.get("chunk_text") or m.get("text", "")
+                        if text:
+                            results.append({
+                                "text": text,
+                                "filename": m.get("filename", "Attached Document"),
+                                "doc_id": m.get("doc_id", ""),
+                                "chunk_index": int(m.get("chunk_index", 0)),
+                                "score": float(m.get("_score", 0.0))
+                            })
+                    if results:
+                        print(f"[Pinecone Documents API] Retrieved {len(results)} chunks via vector similarity search.")
+                        return results
         except Exception as e:
             print(f"[Pinecone Documents API] Search notice: {e}")
 

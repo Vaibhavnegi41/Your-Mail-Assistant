@@ -2,7 +2,7 @@ import { ReviewDraft, EmailStatusResponse } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
-export async function generateEmail(formData: FormData): Promise<{ workflow_id: string; status: string }> {
+export async function generateEmail(formData: FormData): Promise<ReviewDraft> {
   const response = await fetch(`${API_URL}/emails/generate`, {
     method: 'POST',
     credentials: 'include',

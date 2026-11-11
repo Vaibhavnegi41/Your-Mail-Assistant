@@ -53,7 +53,7 @@ export default function Home() {
 
   // Form Inputs
   const [recipient, setRecipient] = useState('');
-  const [senderName, setSenderName] = useState('Vaibhav Negi');
+  const [senderName, setSenderName] = useState('');
   const [subject, setSubject] = useState('');
   const [tone, setTone] = useState<EmailFormData['tone']>('professional');
   const [context, setContext] = useState('');
@@ -109,7 +109,7 @@ export default function Home() {
     try {
       const savedSender = localStorage.getItem('sender_name_cache');
       if (savedSender !== null) setSenderName(savedSender);
-    } catch {}
+    } catch { }
   }, []);
 
   // Save records to cache
@@ -151,8 +151,11 @@ export default function Home() {
       const res = await generateEmail(data);
       setWorkflowId(res.workflow_id);
 
-      // Fetch the real LLM-generated draft
-      const reviewData = await getReviewPayload(res.workflow_id);
+      // Use draft returned directly from /emails/generate to avoid extra round-trip
+      const reviewData: ReviewDraft =
+        res.draft_subject !== undefined && res.draft_body !== undefined
+          ? res
+          : await getReviewPayload(res.workflow_id);
       lastGeneratedSubjectRef.current = reviewData.draft_subject;
       setDraft(reviewData);
       setStatus('pending_review');
@@ -412,14 +415,14 @@ export default function Home() {
                       </label>
                       <input
                         type="text"
-                        placeholder="e.g. Vaibhav Negi"
+                        placeholder="Enter sender name "
                         value={senderName}
                         onChange={(e) => {
                           const val = e.target.value;
                           setSenderName(val);
                           try {
                             localStorage.setItem('sender_name_cache', val);
-                          } catch {}
+                          } catch { }
                         }}
                         disabled={isLoading}
                         className="form-input"

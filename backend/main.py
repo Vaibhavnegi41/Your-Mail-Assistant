@@ -21,6 +21,7 @@ except ImportError:
     pass
 
 from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, status, BackgroundTasks
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from langgraph.types import Command
@@ -35,7 +36,12 @@ try:
     )
     from backend.workflow import build_email_graph
     from backend.document_service import extract_text_from_file
-    from backend.rag_service import index_document_chunks, search_relevant_chunks, delete_document_chunks
+    from backend.rag_service import (
+        index_document_chunks,
+        search_relevant_chunks,
+        delete_document_chunks,
+        chunk_document_text,
+    )
 except ImportError:
     from database import get_db, init_checkpointer, close_checkpointer
     from auth import get_current_user_id
@@ -46,7 +52,12 @@ except ImportError:
     )
     from workflow import build_email_graph
     from document_service import extract_text_from_file
-    from rag_service import index_document_chunks, search_relevant_chunks, delete_document_chunks
+    from rag_service import (
+        index_document_chunks,
+        search_relevant_chunks,
+        delete_document_chunks,
+        chunk_document_text,
+    )
 
 
 @asynccontextmanager
@@ -120,7 +131,8 @@ async def upload_document(
     doc_id = str(uuid.uuid4())
     filename = file.filename or "uploaded_document"
 
-    chunks_indexed = index_document_chunks(
+    chunks_indexed = await run_in_threadpool(
+        index_document_chunks,
         user_id=user_id,
         doc_id=doc_id,
         filename=filename,
@@ -170,6 +182,12 @@ EMAIL_RECORDS = []
 
 # --- Email Generation & Workflow Endpoints ---
 
+def _run_generate_graph(graph, initial_state: dict, config: dict):
+    """Execute synchronous LangGraph invocation and retrieve paused checkpoint state."""
+    graph.invoke(initial_state, config=config)
+    return graph.get_state(config)
+
+
 @app.post("/emails/generate", status_code=status.HTTP_202_ACCEPTED)
 async def generate_email(
     background_tasks: BackgroundTasks,
@@ -182,7 +200,7 @@ async def generate_email(
     doc_id: Optional[str] = Form(None),
     user_id: str = Depends(get_current_user_id)
 ):
-    """Create workflow and start LangGraph execution with instant RAG retrieval."""
+    """Create workflow and start LangGraph execution with instant local RAG + background Pinecone indexing."""
     workflow_id = str(uuid.uuid4())
     doc_text = ""
     assigned_doc_id = doc_id
@@ -192,59 +210,61 @@ async def generate_email(
         assigned_doc_id = str(uuid.uuid4())
         filename = file.filename or "attachment"
 
-        # Store chunks directly into Pinecone under user's isolated namespace
-        chunks_indexed = index_document_chunks(
+        chunks_count = len(chunk_document_text(doc_text))
+        USER_DOCUMENTS.insert(0, {
+            "id": assigned_doc_id,
+            "name": filename,
+            "size": f"{len(doc_text) // 1024 or 1} KB",
+            "extracted_length": len(doc_text),
+            "chunks_indexed": chunks_count,
+            "preview": doc_text[:1000],
+            "user_id": user_id,
+            "uploaded_at": datetime.now(timezone.utc).strftime("%b %d, %H:%M")
+        })
+
+        # Offload remote Pinecone indexing so draft generation does not block on upsert
+        background_tasks.add_task(
+            index_document_chunks,
             user_id=user_id,
             doc_id=assigned_doc_id,
             filename=filename,
             text=doc_text
         )
 
-        USER_DOCUMENTS.insert(0, {
-            "id": assigned_doc_id,
-            "name": filename,
-            "size": f"{len(doc_text) // 1024 or 1} KB",
-            "extracted_length": len(doc_text),
-            "chunks_indexed": chunks_indexed,
-            "preview": doc_text[:1000],
-            "user_id": user_id,
-            "uploaded_at": datetime.now(timezone.utc).strftime("%b %d, %H:%M")
-        })
-
     config = {"configurable": {"thread_id": workflow_id}}
     graph = app.state.graph
+    initial_state = {
+        "user_id": user_id,
+        "recipient": recipient,
+        "sender_name": sender_name or "",
+        "subject": subject,
+        "tone": tone,
+        "context": context,
+        "doc_id": assigned_doc_id,
+        "document_text": doc_text,
+        "filename": file.filename if file else "attached_document",
+        "version": 1
+    }
 
-    # Invoke initial phase with Pinecone RAG parameters
-    result = graph.invoke(
-        {
-            "user_id": user_id,
-            "recipient": recipient,
-            "sender_name": sender_name or "",
-            "subject": subject,
-            "tone": tone,
-            "context": context,
-            "doc_id": assigned_doc_id,
-            "document_text": doc_text,
-            "filename": file.filename if file else "attached_document",
-            "version": 1
-        },
-        config=config
-    )
-
-    state = graph.get_state(config)
+    # Execute sync LangGraph + Groq/Pinecone calls in FastAPI's threadpool (non-blocking for event loop)
+    state = await run_in_threadpool(_run_generate_graph, graph, initial_state, config)
     values = state.values if state else {}
+
+    draft_subject = values.get("draft_subject", subject)
+    draft_body = values.get("draft_body", "")
+    version = values.get("version", 1)
 
     # Record into history store
     new_record = {
         "workflow_id": workflow_id,
         "recipient": recipient,
-        "subject": values.get("draft_subject", subject),
+        "subject": draft_subject,
         "tone": tone,
         "context": context,
-        "draft_subject": values.get("draft_subject", subject),
-        "draft_body": values.get("draft_body", ""),
+        "draft_subject": draft_subject,
+        "draft_body": draft_body,
         "status": "pending_review",
-        "version": values.get("version", 1),
+        "version": version,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "gmail_message_id": None
     }
@@ -252,6 +272,10 @@ async def generate_email(
 
     return {
         "workflow_id": workflow_id,
+        "recipient": values.get("recipient", recipient),
+        "draft_subject": draft_subject,
+        "draft_body": draft_body,
+        "version": version,
         "status": "pending_review",
         "message": "Draft created and awaiting human review."
     }

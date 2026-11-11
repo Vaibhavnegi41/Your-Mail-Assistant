@@ -39,7 +39,8 @@ if MODEL_NAME.startswith("gpt-4"):
 
 def get_candidate_models():
     primary = os.getenv("GROQ_MODEL") or os.getenv("LLM_MODEL") or ""
-    defaults = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b", "llama-3.3-70b-versatile"]
+    # All default fallback IDs verified active on Groq
+    defaults = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"]
     candidates = []
     if primary and not primary.startswith("gpt-4") and not primary.startswith("gpt-3"):
         candidates.append(primary)
@@ -49,12 +50,7 @@ def get_candidate_models():
     return candidates
 
 
-model = ChatGroq(
-    model=MODEL_NAME,
-    api_key=GROQ_API_KEY,
-    temperature=0.25,
-    max_tokens=1500
-)
+_STRUCTURED_CHAIN_CACHE: Dict[tuple, Any] = {}
 
 
 class EmailDraftOutput(BaseModel):
@@ -127,6 +123,29 @@ EMAIL_USER_PROMPT = """<draft_request>
 
 Please generate a complete, well-formatted draft_subject and draft_body adhering strictly to all formatting, depth, grounding, and sender sign-off rules."""
 
+EMAIL_PROMPT = ChatPromptTemplate.from_messages([
+    ("system", EMAIL_SYSTEM_PROMPT),
+    ("human", EMAIL_USER_PROMPT),
+])
+
+
+def _get_structured_chain(model_name: str, api_key: Optional[str]):
+    """Return cached prompt | structured ChatGroq chain to avoid per-request client construction."""
+    cache_key = (model_name, api_key or "")
+    chain = _STRUCTURED_CHAIN_CACHE.get(cache_key)
+    if chain is None:
+        chat_model = ChatGroq(
+            model=model_name,
+            api_key=api_key,
+            temperature=0.25,
+            max_tokens=1500,
+            request_timeout=15.0,
+            max_retries=1,
+        )
+        chain = EMAIL_PROMPT | chat_model.with_structured_output(EmailDraftOutput)
+        _STRUCTURED_CHAIN_CACHE[cache_key] = chain
+    return chain
+
 
 class EmailState(TypedDict, total=False):
     recipient: str
@@ -154,8 +173,9 @@ def prepare_context(state: EmailState):
     """
     High-Speed RAG Retrieval Node:
     Constructs a semantic search query from subject + context.
-    - If document text was attached directly, ranks chunks in memory in < 1ms.
-    - If document was chosen from Vault, queries Pinecone via persistent warm session in ~300ms.
+    - If document text was attached directly, chunks & ranks in memory in < 1ms
+      (background indexing into Pinecone is handled separately in main.py).
+    - If referencing pre-indexed Vault context, queries Pinecone via persistent warm session.
     Returns ONLY the top relevant chunks to minimize tokens and latency.
     """
     user_id = state.get("user_id", "dev-user-001")
@@ -169,31 +189,30 @@ def prepare_context(state: EmailState):
     retrieved_chunks = []
     rag_context = ""
 
-    # 1. Store chunks in Pinecone under user's isolated namespace
+    # 1. Attached file present: rank chunks locally in < 1ms without duplicate Pinecone round-trips
     if raw_doc_text:
-        assigned_doc_id = doc_id or str(uuid.uuid4())
-        index_document_chunks(
-            user_id=user_id,
-            doc_id=assigned_doc_id,
-            filename=filename,
-            text=raw_doc_text
-        )
-
-    # 2. Perform Pinecone Vector Similarity Search across user's isolated namespace
-    if search_query:
-        filter_doc_id = doc_id if (doc_id and not raw_doc_text) else None
+        chunks = chunk_document_text(raw_doc_text)
+        if chunks:
+            retrieved_chunks = rank_chunks_locally(
+                chunks,
+                search_query,
+                filename=filename,
+                top_k=3,
+            )
+            if retrieved_chunks:
+                rag_context = format_retrieved_context(retrieved_chunks)
+        if not rag_context:
+            rag_context = raw_doc_text[:2000]
+    # 2. Pre-indexed Vault context: query Pinecone vector similarity search
+    elif search_query:
         retrieved_chunks = search_relevant_chunks(
             user_id=user_id,
             query=search_query,
-            doc_id=filter_doc_id,
-            top_k=3
+            doc_id=doc_id,
+            top_k=3,
         )
         if retrieved_chunks:
             rag_context = format_retrieved_context(retrieved_chunks)
-
-    # 3. Fallback if vector search returned no results
-    if not rag_context and raw_doc_text:
-        rag_context = raw_doc_text[:2000]
 
     return {
         "doc_id": doc_id,
@@ -220,24 +239,12 @@ def generate_email(state: EmailState):
     candidates = get_candidate_models()
     last_exc = None
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", EMAIL_SYSTEM_PROMPT),
-        ("human", EMAIL_USER_PROMPT),
-    ])
-
     draft_subject = ""
     draft_body = ""
 
     for candidate_name in candidates:
         try:
-            chat_model = ChatGroq(
-                model=candidate_name,
-                api_key=api_key,
-                temperature=0.25,
-                max_tokens=1500
-            )
-            structured_model = chat_model.with_structured_output(EmailDraftOutput)
-            chain = prompt | structured_model
+            chain = _get_structured_chain(candidate_name, api_key)
             result: EmailDraftOutput = chain.invoke({
                 "tone": tone,
                 "sender_display": sender_display,
