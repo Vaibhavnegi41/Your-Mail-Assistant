@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Sidebar, NavTab } from '@/components/Sidebar';
 import { RecordsView } from '@/components/RecordsView';
 import { VaultView } from '@/components/VaultView';
@@ -40,6 +40,14 @@ import {
   AlertCircle
 } from 'lucide-react';
 
+const GENERATING_STEPS = [
+  'Analyzing recipient, tone & primary objective...',
+  'Synthesizing document context and reference notes...',
+  'Structuring subject line and email body...',
+  'Applying selected tone and formatting sign-off...',
+  'Finalizing Human-in-the-Loop review draft...',
+];
+
 export default function Home() {
   // Navigation & View
   const [activeTab, setActiveTab] = useState<NavTab>('composer');
@@ -58,6 +66,7 @@ export default function Home() {
   const [tone, setTone] = useState<EmailFormData['tone']>('professional');
   const [context, setContext] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const lastGeneratedSubjectRef = React.useRef<string>('');
 
   // Records & History
@@ -79,6 +88,20 @@ export default function Home() {
 
   // Clipboard
   const [copiedCanvas, setCopiedCanvas] = useState(false);
+
+  // Live Generating Status Messages
+  const [generatingStepIndex, setGeneratingStepIndex] = useState(0);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setGeneratingStepIndex(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setGeneratingStepIndex((prev) => (prev + 1) % GENERATING_STEPS.length);
+    }, 1400);
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   // Load records on mount
   useEffect(() => {
@@ -123,6 +146,29 @@ export default function Home() {
   };
 
   // ------------------------------------------------------------------
+  // Reset Composer & Draft State (Returns system to initial empty state)
+  // ------------------------------------------------------------------
+  const resetComposerState = () => {
+    setRecipient('');
+    setSenderName('');
+    try {
+      localStorage.removeItem('sender_name_cache');
+    } catch { }
+    setSubject('');
+    setTone('professional');
+    setContext('');
+    setFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    setDraft(null);
+    setWorkflowId(null);
+    setStatus('idle');
+    setComposerSubTab('form');
+    lastGeneratedSubjectRef.current = '';
+  };
+
+  // ------------------------------------------------------------------
   // Generation Handler
   // ------------------------------------------------------------------
   const handleGenerate = async (e?: React.FormEvent, overrideSubject?: string) => {
@@ -136,6 +182,7 @@ export default function Home() {
 
     setIsLoading(true);
     setStatus('processing');
+    setComposerSubTab('draft');
 
     try {
       const data = new FormData();
@@ -198,26 +245,34 @@ export default function Home() {
 
     try {
       const res = await approveEmail(workflowId, draft.draft_subject, draft.draft_body);
-      setStatus('sent');
+      const dispatchedRecipient = draft.recipient;
+      const dispatchedSubject = draft.draft_subject;
+      const dispatchedBody = draft.draft_body;
+      const currentWorkflowId = workflowId;
+
       setIsApproveModalOpen(false);
 
       // Update records
       const updated = records.map(r =>
-        r.workflow_id === workflowId ? {
+        r.workflow_id === currentWorkflowId ? {
           ...r,
           status: 'sent' as WorkflowStatus,
-          draft_subject: draft.draft_subject,
-          draft_body: draft.draft_body,
+          draft_subject: dispatchedSubject,
+          draft_body: dispatchedBody,
           gmail_message_id: res.gmail_message_id || 'sent-ok'
         } : r
       );
       saveRecordsToCache(updated);
 
       setLastDispatchedInfo({
-        recipient: draft.recipient,
-        subject: draft.draft_subject,
+        recipient: dispatchedRecipient,
+        subject: dispatchedSubject,
         gmailMessageId: res.gmail_message_id
       });
+
+      // Clear both the form details and draft generated mail back to initial empty state
+      resetComposerState();
+
       setIsDispatchedModalOpen(true);
     } catch (err: any) {
       setIsApproveModalOpen(false);
@@ -242,14 +297,17 @@ export default function Home() {
 
     try {
       await rejectEmail(workflowId);
-      setStatus('rejected');
+      const currentWorkflowId = workflowId;
       setIsRejectModalOpen(false);
 
       // Update records
       const updated = records.map(r =>
-        r.workflow_id === workflowId ? { ...r, status: 'rejected' as WorkflowStatus } : r
+        r.workflow_id === currentWorkflowId ? { ...r, status: 'rejected' as WorkflowStatus } : r
       );
       saveRecordsToCache(updated);
+
+      // Clear both the form details and draft generated mail back to initial empty state
+      resetComposerState();
 
       setIsRejectedResultModalOpen(true);
     } catch (err: any) {
@@ -382,12 +440,27 @@ export default function Home() {
                   </div>
                 )}
                 <div className="pane-section-header">
-                  <h1 className="pane-title">
-                    <Mail size={18} color="#38bdf8" /> Compose & Configure
-                  </h1>
-                  <p className="pane-subtitle">
-                    Define your objective and key points.
-                  </p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    <div>
+                      <h1 className="pane-title">
+                        <Mail size={18} color="#38bdf8" /> Compose & Configure
+                      </h1>
+                      <p className="pane-subtitle">
+                        Define your objective and key points.
+                      </p>
+                    </div>
+                    {(recipient || subject || context || file || draft) && (
+                      <button
+                        type="button"
+                        onClick={resetComposerState}
+                        className="icon-btn-ghost"
+                        style={{ fontSize: '0.78rem', color: '#94a3b8', gap: 4 }}
+                        title="Clear all fields and draft"
+                      >
+                        <RotateCw size={12} /> Clear All
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <form onSubmit={handleGenerate}>
@@ -496,6 +569,7 @@ export default function Home() {
                     <label className="form-label">Reference Document (Optional)</label>
                     <label className={`dropzone-box ${file ? 'has-file' : ''}`}>
                       <input
+                        ref={fileInputRef}
                         type="file"
                         accept=".pdf,.docx,.txt"
                         style={{ display: 'none' }}
@@ -512,6 +586,7 @@ export default function Home() {
                               onClick={(ev) => {
                                 ev.preventDefault();
                                 setFile(null);
+                                if (fileInputRef.current) fileInputRef.current.value = '';
                               }}
                               className="icon-btn-ghost"
                               style={{ color: '#f87171', padding: '2px 6px' }}
@@ -546,8 +621,21 @@ export default function Home() {
               </div>
 
               {/* Right Half: Expansive Email Reading & Review Canvas */}
-              <div className={`composer-right-pane ${composerSubTab === 'draft' ? 'tab-active' : 'tab-hidden'}`}>
-                {!draft ? (
+              <div
+                className={`composer-right-pane ${composerSubTab === 'draft' ? 'tab-active' : 'tab-hidden'
+                  } ${isLoading ? 'is-generating' : ''}`}
+              >
+                {isLoading ? (
+                  /* Antigravity Agent Generating Stage with Clockwise Colored Moving Border */
+                  <div className="antigravity-generating-card">
+                    <h3 className="generating-title">
+                      <span className="generating-title-gradient">Generating Mail Draft...</span>
+                    </h3>
+                    <p className="generating-subtitle">
+                      {GENERATING_STEPS[generatingStepIndex]}
+                    </p>
+                  </div>
+                ) : !draft ? (
                   /* Empty State Guide */
                   <div className="canvas-empty-state">
                     <div className="empty-icon-wrap">
@@ -704,9 +792,13 @@ export default function Home() {
         recipient={lastDispatchedInfo.recipient}
         subject={lastDispatchedInfo.subject}
         gmailMessageId={lastDispatchedInfo.gmailMessageId}
-        onClose={() => setIsDispatchedModalOpen(false)}
+        onClose={() => {
+          setIsDispatchedModalOpen(false);
+          resetComposerState();
+        }}
         onViewRecords={() => {
           setIsDispatchedModalOpen(false);
+          resetComposerState();
           setActiveTab('records');
         }}
       />
@@ -724,9 +816,13 @@ export default function Home() {
       {/* 4. Rejection Result Modal */}
       <RejectedResultModal
         isOpen={isRejectedResultModalOpen}
-        onClose={() => setIsRejectedResultModalOpen(false)}
+        onClose={() => {
+          setIsRejectedResultModalOpen(false);
+          resetComposerState();
+        }}
         onViewRecords={() => {
           setIsRejectedResultModalOpen(false);
+          resetComposerState();
           setActiveTab('records');
         }}
       />
