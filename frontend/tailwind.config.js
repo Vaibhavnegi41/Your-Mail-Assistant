@@ -9,9 +9,10 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        app: '#030712',
-        sidebar: '#060a14',
-        surface: '#0b1120',
+        app: '#000000',
+        sidebar: '#050505',
+        surface: '#0a0a0c',
+        card: '#0c0c0e',
         'subtle-border': 'rgba(255, 255, 255, 0.08)',
       },
       fontFamily: {

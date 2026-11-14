@@ -4,14 +4,14 @@
 
 @layer base {
   :root {
-    --bg-app: #030712;
-    --bg-sidebar: #060a14;
-    --bg-surface: #0b1120;
-    --bg-card: rgba(15, 23, 42, 0.75);
+    --bg-app: #000000;
+    --bg-sidebar: #050505;
+    --bg-surface: #0a0a0c;
+    --bg-card: #0c0c0e;
     --border-subtle: rgba(255, 255, 255, 0.08);
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
+    --text-primary: #f4f4f5;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
   }
 
   * {
@@ -19,10 +19,10 @@
   }
 
   body {
-    @apply bg-[#030712] text-slate-100 font-sans h-screen min-h-screen overflow-hidden antialiased;
+    @apply bg-[#000000] text-zinc-100 font-sans h-screen min-h-screen overflow-hidden antialiased;
     background-image: 
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.12), transparent 70%),
-      radial-gradient(ellipse 60% 40% at 90% 100%, rgba(139, 92, 246, 0.08), transparent 70%);
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 255, 255, 0.035), transparent 70%),
+      radial-gradient(ellipse 60% 40% at 90% 100%, rgba(255, 255, 255, 0.015), transparent 70%);
   }
 
   ::-webkit-scrollbar {
@@ -33,11 +33,11 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.12);
     border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.22);
   }
 }
 
@@ -50,7 +50,7 @@
   }
 
   .vscode-sidebar {
-    @apply w-[72px] min-w-[72px] bg-[#060a14] border-r border-white/10 flex flex-col items-center justify-between py-4 z-30;
+    @apply w-[72px] min-w-[72px] bg-[#050505] border-r border-white/[0.08] flex flex-col items-center justify-between py-4 z-30;
   }
 
   .sidebar-top {
@@ -58,7 +58,7 @@
   }
 
   .sidebar-logo {
-    @apply w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.25)] mb-2 cursor-pointer;
+    @apply w-11 h-11 rounded-xl bg-white/[0.05] border border-white/15 flex items-center justify-center text-white shadow-[0_0_20px_rgba(255,255,255,0.06)] mb-2 cursor-pointer transition-all duration-200 hover:bg-white/[0.1] hover:border-white/30;
   }
 
   .sidebar-nav {
@@ -66,16 +66,16 @@
   }
 
   .sidebar-btn {
-    @apply relative w-full h-[50px] flex items-center justify-center bg-transparent border-0 text-slate-400 cursor-pointer transition-all duration-200 hover:text-slate-100 hover:bg-white/[0.04];
+    @apply relative w-full h-[50px] flex items-center justify-center bg-transparent border-0 text-zinc-400 cursor-pointer transition-all duration-200 hover:text-white hover:bg-white/[0.04];
   }
 
   .sidebar-btn.active {
-    @apply text-sky-400 bg-sky-400/[0.08];
+    @apply text-white bg-white/[0.08];
   }
 
   .sidebar-btn.active::before {
     content: '';
-    @apply absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-r bg-sky-400 shadow-[0_0_10px_#38bdf8];
+    @apply absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-r bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)];
   }
 
   .sidebar-label {
@@ -83,7 +83,7 @@
   }
 
   .sidebar-badge {
-    @apply absolute top-2 right-3.5 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-[#060a14];
+    @apply absolute top-2 right-3.5 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-[#050505];
   }
 
   .sidebar-bottom {
@@ -95,7 +95,7 @@
   }
 
   .user-avatar-btn {
-    @apply w-9 h-9 rounded-full bg-gradient-to-br from-slate-800 to-slate-700 border border-white/10 flex items-center justify-center text-[13px] font-semibold text-slate-300 cursor-pointer transition-transform duration-150 hover:scale-105 hover:border-white/30;
+    @apply w-9 h-9 rounded-full bg-zinc-900 border border-white/15 flex items-center justify-center text-[13px] font-semibold text-zinc-200 cursor-pointer transition-transform duration-150 hover:scale-105 hover:border-white/30;
   }
 
   /* Main Viewport */
@@ -105,7 +105,7 @@
 
   /* Top Navigation Bar */
   .top-header-bar {
-    @apply h-14 min-h-[56px] border-b border-white/10 bg-[#0b1120]/60 backdrop-blur-md flex items-center justify-between px-6 z-20;
+    @apply h-14 min-h-[56px] border-b border-white/[0.08] bg-[#080808]/85 backdrop-blur-md flex items-center justify-between px-6 z-20;
   }
 
   .top-header-left {
@@ -121,11 +121,11 @@
   }
 
   .view-title {
-    @apply text-base font-semibold tracking-tight text-slate-100;
+    @apply text-base font-semibold tracking-tight text-white;
   }
 
   .view-pill {
-    @apply text-xs font-medium px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/25 flex items-center gap-1.5;
+    @apply text-xs font-medium px-2.5 py-0.5 rounded-full bg-white/[0.06] text-zinc-300 border border-white/[0.12] flex items-center gap-1.5;
   }
 
   .top-header-right {
@@ -133,7 +133,7 @@
   }
 
   .status-badge-clean {
-    @apply text-xs font-medium text-slate-400 bg-white/[0.04] border border-white/10 px-2.5 py-1 rounded-full flex items-center gap-2;
+    @apply text-xs font-medium text-zinc-400 bg-white/[0.03] border border-white/[0.08] px-2.5 py-1 rounded-full flex items-center gap-2;
   }
 
   .status-dot-active {
@@ -152,11 +152,11 @@
   }
 
   .toggle-tab-btn {
-    @apply flex-1 py-2 px-3 rounded-lg text-[13px] font-semibold flex items-center justify-center gap-1.5 bg-white/[0.03] border border-white/10 text-slate-400 cursor-pointer transition-all duration-150 relative;
+    @apply flex-1 py-2 px-3 rounded-lg text-[13px] font-semibold flex items-center justify-center gap-1.5 bg-white/[0.03] border border-white/[0.08] text-zinc-400 cursor-pointer transition-all duration-150 relative;
   }
 
   .toggle-tab-btn.active {
-    @apply bg-blue-500/15 border-blue-500 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.2)];
+    @apply bg-white/[0.1] border-white/25 text-white shadow-[0_0_12px_rgba(255,255,255,0.08)];
   }
 
   .toggle-tab-dot {
@@ -169,7 +169,7 @@
 
   /* Left Half: Form Studio */
   .composer-left-pane {
-    @apply border-r border-white/10 h-full overflow-y-auto px-7 py-6 bg-[#060a14]/40;
+    @apply border-r border-white/[0.08] h-full overflow-y-auto px-7 py-6 bg-[#050505]/75;
   }
 
   .mobile-draft-ready-pill {
@@ -189,11 +189,11 @@
   }
 
   .pane-title {
-    @apply text-lg font-bold tracking-tight text-slate-100 flex items-center gap-2;
+    @apply text-lg font-bold tracking-tight text-white flex items-center gap-2;
   }
 
   .pane-subtitle {
-    @apply text-xs text-slate-400 mt-1;
+    @apply text-xs text-zinc-400 mt-1;
   }
 
   .form-group {
@@ -201,11 +201,11 @@
   }
 
   .form-label {
-    @apply text-xs font-semibold text-slate-400 flex justify-between;
+    @apply text-xs font-semibold text-zinc-400 flex justify-between;
   }
 
   .form-input {
-    @apply w-full px-3.5 py-2.5 rounded-lg bg-slate-900/80 border border-white/10 text-slate-100 text-sm transition-all duration-200 placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:bg-slate-900;
+    @apply w-full px-3.5 py-2.5 rounded-lg bg-[#0e0e10] border border-white/[0.08] text-zinc-100 text-sm transition-all duration-200 placeholder:text-zinc-500 focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 focus:bg-[#121215];
   }
 
   /* Tone Selector Pills */
@@ -214,48 +214,48 @@
   }
 
   .tone-pill-btn {
-    @apply px-3.5 py-1.5 rounded-full text-xs font-medium bg-white/[0.03] border border-white/10 text-slate-400 cursor-pointer transition-all duration-150 flex items-center gap-1.5 hover:bg-white/[0.08] hover:text-slate-100 hover:border-white/20;
+    @apply px-3.5 py-1.5 rounded-full text-xs font-medium bg-white/[0.03] border border-white/[0.08] text-zinc-400 cursor-pointer transition-all duration-150 flex items-center gap-1.5 hover:bg-white/[0.08] hover:text-white hover:border-white/20;
   }
 
   .tone-pill-btn.active {
-    @apply bg-blue-500/15 border-blue-500 text-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.2)];
+    @apply bg-white text-black font-semibold border-white shadow-[0_0_15px_rgba(255,255,255,0.2)];
   }
 
   /* Document Dropzone */
   .dropzone-box {
-    @apply border border-dashed border-white/10 rounded-xl p-3.5 bg-slate-900/40 cursor-pointer transition-all duration-200 flex items-center gap-3 hover:border-blue-500/50 hover:bg-blue-500/[0.04];
+    @apply border border-dashed border-white/[0.08] rounded-xl p-3.5 bg-[#0a0a0c] cursor-pointer transition-all duration-200 flex items-center gap-3 hover:border-white/25 hover:bg-white/[0.03];
   }
 
   .dropzone-box.has-file {
-    @apply border-emerald-500/40 bg-emerald-500/[0.04];
+    @apply border-emerald-500/40 bg-emerald-500/[0.05];
   }
 
-  /* Shimmer Generate Button */
+  /* Shimmer Generate Button - Luxe Aesthetic White Button */
   .btn-generate-shimmer {
-    @apply w-full py-3 px-5 rounded-xl text-sm font-semibold text-white bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-600 border border-white/15 cursor-pointer shadow-[0_4px_20px_rgba(37,99,235,0.35)] transition-all duration-200 flex items-center justify-center gap-2 mt-3 hover:brightness-110 hover:shadow-[0_6px_25px_rgba(37,99,235,0.5)] disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply w-full py-3 px-5 rounded-xl text-sm font-semibold text-black bg-gradient-to-r from-zinc-100 via-white to-zinc-200 border border-white cursor-pointer shadow-[0_4px_25px_rgba(255,255,255,0.18)] transition-all duration-200 flex items-center justify-center gap-2 mt-3 hover:brightness-105 hover:shadow-[0_6px_30px_rgba(255,255,255,0.28)] disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   /* ====================================================================
      Right Half: Email Reading & Review Canvas
      ==================================================================== */
   .composer-right-pane {
-    @apply h-full flex flex-col bg-[#0b1120] relative;
+    @apply h-full flex flex-col bg-[#070708] relative;
   }
 
   .canvas-empty-state {
-    @apply flex-1 flex flex-col items-center justify-center p-10 text-center text-slate-500;
+    @apply flex-1 flex flex-col items-center justify-center p-10 text-center text-zinc-500;
   }
 
   .empty-icon-wrap {
-    @apply w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-center text-slate-500 mb-4;
+    @apply w-16 h-16 rounded-2xl bg-white/[0.02] border border-white/[0.08] flex items-center justify-center text-zinc-500 mb-4;
   }
 
   .empty-title {
-    @apply text-lg font-semibold text-slate-100 mb-1.5;
+    @apply text-lg font-semibold text-white mb-1.5;
   }
 
   .empty-desc {
-    @apply text-sm max-w-[380px] leading-relaxed text-slate-400;
+    @apply text-sm max-w-[380px] leading-relaxed text-zinc-400;
   }
 
   .canvas-active-wrapper {
@@ -263,7 +263,7 @@
   }
 
   .canvas-meta-bar {
-    @apply px-6 py-3 border-b border-white/10 bg-[#0b1120]/40 flex items-center justify-between;
+    @apply px-6 py-3 border-b border-white/[0.08] bg-[#0a0a0c]/80 flex items-center justify-between;
   }
 
   .canvas-meta-left {
@@ -271,7 +271,7 @@
   }
 
   .meta-pill {
-    @apply text-xs text-slate-300 bg-white/[0.04] px-2.5 py-1 rounded-md border border-white/10;
+    @apply text-xs text-zinc-300 bg-white/[0.04] px-2.5 py-1 rounded-md border border-white/[0.08];
   }
 
   .canvas-meta-right {
@@ -279,7 +279,7 @@
   }
 
   .icon-btn-ghost {
-    @apply bg-transparent border border-transparent text-slate-400 px-2.5 py-1.5 rounded-md text-xs cursor-pointer flex items-center gap-1.5 transition-all duration-150 hover:text-slate-100 hover:bg-white/[0.05] hover:border-white/10;
+    @apply bg-transparent border border-transparent text-zinc-400 px-2.5 py-1.5 rounded-md text-xs cursor-pointer flex items-center gap-1.5 transition-all duration-150 hover:text-white hover:bg-white/[0.06] hover:border-white/[0.1];
   }
 
   .canvas-body-container {
@@ -287,20 +287,20 @@
   }
 
   .canvas-subject-field {
-    @apply w-full text-lg font-bold text-slate-100 bg-transparent border-0 border-b border-white/10 py-1.5 pb-2.5 transition-colors duration-150 focus:outline-none focus:border-blue-500;
+    @apply w-full text-lg font-bold text-white bg-transparent border-0 border-b border-white/[0.08] py-1.5 pb-2.5 transition-colors duration-150 focus:outline-none focus:border-white/40;
   }
 
   .canvas-textarea-full {
-    @apply flex-1 w-full min-h-[380px] bg-transparent border-0 text-slate-200 text-sm leading-relaxed resize-none py-1 focus:outline-none;
+    @apply flex-1 w-full min-h-[380px] bg-transparent border-0 text-zinc-200 text-sm leading-relaxed resize-none py-1 focus:outline-none;
   }
 
   /* Actions Bottom Bar */
   .canvas-actions-bar {
-    @apply px-6 py-4 border-t border-white/10 bg-[#0b1120]/85 backdrop-blur-md flex items-center justify-between;
+    @apply px-6 py-4 border-t border-white/[0.08] bg-[#0a0a0c]/90 backdrop-blur-md flex items-center justify-between;
   }
 
   .actions-left-note {
-    @apply text-xs text-slate-400 flex items-center gap-1.5;
+    @apply text-xs text-zinc-400 flex items-center gap-1.5;
   }
 
   .actions-btn-group {
@@ -316,7 +316,7 @@
   }
 
   .btn-canvas-secondary {
-    @apply py-2 px-4 rounded-lg text-sm font-semibold text-slate-100 bg-white/[0.06] border border-white/10 cursor-pointer transition-all duration-150 flex items-center gap-1.5 hover:bg-white/[0.1] disabled:opacity-50;
+    @apply py-2 px-4 rounded-lg text-sm font-semibold text-zinc-200 bg-white/[0.05] border border-white/[0.08] cursor-pointer transition-all duration-150 flex items-center gap-1.5 hover:bg-white/[0.1] hover:text-white disabled:opacity-50;
   }
 
   .btn-canvas-reject {
@@ -327,11 +327,11 @@
      Modals System
      ==================================================================== */
   .modal-overlay {
-    @apply fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4;
+    @apply fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-center justify-center p-4;
   }
 
   .modal-card {
-    @apply w-full max-w-[520px] bg-[#0b1120] border border-white/15 rounded-2xl shadow-2xl p-6 flex flex-col gap-5 relative;
+    @apply w-full max-w-[520px] bg-[#0c0c0e] border border-white/[0.12] rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.95)] p-6 flex flex-col gap-5 relative;
   }
 
   .modal-header {
@@ -343,7 +343,7 @@
   }
 
   .modal-icon-badge.blue {
-    @apply bg-blue-500/15 border border-blue-500/30 text-blue-400;
+    @apply bg-sky-500/15 border border-sky-500/30 text-sky-400;
   }
 
   .modal-icon-badge.green {
@@ -355,15 +355,15 @@
   }
 
   .modal-title-group h3 {
-    @apply text-lg font-bold text-slate-100;
+    @apply text-lg font-bold text-white;
   }
 
   .modal-title-group p {
-    @apply text-sm text-slate-400 mt-1;
+    @apply text-sm text-zinc-400 mt-1;
   }
 
   .modal-body {
-    @apply bg-white/[0.02] border border-white/10 rounded-xl p-3.5 flex flex-col gap-2.5 text-sm;
+    @apply bg-white/[0.02] border border-white/[0.08] rounded-xl p-3.5 flex flex-col gap-2.5 text-sm;
   }
 
   .modal-info-row {
@@ -371,11 +371,11 @@
   }
 
   .modal-info-label {
-    @apply text-slate-400 text-xs;
+    @apply text-zinc-400 text-xs;
   }
 
   .modal-info-val {
-    @apply text-slate-100 font-medium max-w-[280px] truncate;
+    @apply text-zinc-100 font-medium max-w-[280px] truncate;
   }
 
   .modal-actions {
@@ -394,15 +394,15 @@
   }
 
   .stat-card {
-    @apply bg-slate-900/75 border border-white/10 rounded-xl p-4 flex items-center justify-between transition-colors duration-150 hover:border-white/20;
+    @apply bg-[#0c0c0e] border border-white/[0.08] rounded-xl p-4 flex items-center justify-between transition-colors duration-150 hover:border-white/[0.16];
   }
 
   .stat-val {
-    @apply text-2xl font-bold tracking-tight text-slate-100;
+    @apply text-2xl font-bold tracking-tight text-white;
   }
 
   .stat-label {
-    @apply text-xs text-slate-400 mt-0.5;
+    @apply text-xs text-zinc-400 mt-0.5;
   }
 
   .stat-icon {
@@ -418,11 +418,11 @@
   }
 
   .search-icon {
-    @apply absolute left-3 top-1/2 -translate-y-1/2 text-slate-400;
+    @apply absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400;
   }
 
   .search-field {
-    @apply w-full py-2 pl-9 pr-3 rounded-lg bg-slate-900/75 border border-white/10 text-slate-100 text-sm focus:outline-none focus:border-blue-500;
+    @apply w-full py-2 pl-9 pr-3 rounded-lg bg-[#0c0c0e] border border-white/[0.08] text-zinc-100 text-sm focus:outline-none focus:border-white/30;
   }
 
   .filter-actions-wrap {
@@ -434,15 +434,15 @@
   }
 
   .filter-tab-btn {
-    @apply py-1.5 px-3.5 rounded-lg text-xs font-medium bg-transparent border border-white/10 text-slate-300 cursor-pointer transition-all duration-150 hover:bg-white/[0.05];
+    @apply py-1.5 px-3.5 rounded-lg text-xs font-medium bg-transparent border border-white/[0.08] text-zinc-400 cursor-pointer transition-all duration-150 hover:bg-white/[0.05] hover:text-zinc-200;
   }
 
   .filter-tab-btn.active {
-    @apply bg-blue-500/15 border-blue-500 text-blue-400;
+    @apply bg-white text-black font-semibold border-white shadow-[0_0_12px_rgba(255,255,255,0.15)];
   }
 
   .records-table-wrap {
-    @apply flex-1 min-h-0 bg-slate-900/75 border border-white/10 rounded-2xl overflow-auto;
+    @apply flex-1 min-h-0 bg-[#09090b] border border-white/[0.08] rounded-2xl overflow-auto;
   }
 
   .records-table {
@@ -450,11 +450,11 @@
   }
 
   .records-table th {
-    @apply sticky top-0 z-[5] px-5 py-3 text-xs font-semibold uppercase text-slate-400 border-b border-white/10 bg-[#0b1120] text-center;
+    @apply sticky top-0 z-[5] px-5 py-3 text-xs font-semibold uppercase text-zinc-400 border-b border-white/[0.08] bg-[#0f0f12] text-center;
   }
 
   .records-table td {
-    @apply px-5 py-4 text-sm border-b border-white/10 text-slate-300 text-center;
+    @apply px-5 py-4 text-sm border-b border-white/[0.06] text-zinc-300 text-center;
   }
 
   .records-table tr:hover td {
@@ -466,7 +466,7 @@
   }
 
   .record-mobile-card {
-    @apply bg-slate-900/75 border border-white/10 rounded-xl p-3 flex flex-col gap-1.5 transition-colors duration-150 hover:border-white/20;
+    @apply bg-[#0c0c0e] border border-white/[0.08] rounded-xl p-3 flex flex-col gap-1.5 transition-colors duration-150 hover:border-white/[0.16];
   }
 
   .record-card-top {
@@ -474,11 +474,11 @@
   }
 
   .record-card-recipient {
-    @apply font-semibold text-sm text-slate-100;
+    @apply font-semibold text-sm text-white;
   }
 
   .record-card-subject {
-    @apply text-xs text-slate-300 font-medium truncate;
+    @apply text-xs text-zinc-300 font-medium truncate;
   }
 
   .record-card-footer {
@@ -486,7 +486,7 @@
   }
 
   .record-card-date {
-    @apply text-[11px] text-slate-500;
+    @apply text-[11px] text-zinc-500;
   }
 
   .record-card-actions {
@@ -505,13 +505,13 @@
   }
 
   .vault-card {
-    @apply flex flex-col p-4 sm:p-5 bg-slate-900/80 border border-white/[0.1] rounded-2xl gap-3 transition-all duration-200 backdrop-blur-md w-full;
-    box-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.3);
+    @apply flex flex-col p-4 sm:p-5 bg-[#0c0c0e] border border-white/[0.08] rounded-2xl gap-3 transition-all duration-200 backdrop-blur-md w-full;
+    box-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.6);
   }
 
   .vault-card:hover {
-    @apply border-sky-500/40 bg-slate-900/95;
-    box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.45), 0 0 20px -2px rgba(56, 189, 248, 0.1);
+    @apply border-white/20 bg-[#121215];
+    box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.8), 0 0 20px -2px rgba(255, 255, 255, 0.05);
     transform: translateY(-1px);
   }
 }
@@ -990,7 +990,7 @@
   content: '';
   position: absolute;
   inset: 2px;
-  background: #0b1120;
+  background: #070708;
   border-radius: inherit;
   z-index: 2;
   pointer-events: none;
@@ -1061,7 +1061,7 @@
   content: '';
   position: absolute;
   inset: 2.5px;
-  background: linear-gradient(180deg, #0d1527 0%, #080d1a 100%);
+  background: linear-gradient(180deg, #0e0e11 0%, #050505 100%);
   border-radius: 17.5px;
   z-index: 2;
 }
@@ -1076,7 +1076,7 @@
 .antigravity-generating-inner {
   position: relative;
   z-index: 2;
-  background: linear-gradient(180deg, #0d1527 0%, #080d1a 100%);
+  background: linear-gradient(180deg, #0e0e11 0%, #050505 100%);
   border-radius: 18px;
   padding: 28px 24px;
   display: flex;

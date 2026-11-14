@@ -317,30 +317,119 @@ def approve_email(
     payload: EmailApprovalRequest,
     user_id: str = Depends(get_current_user_id)
 ):
-    """Validate version and resume graph execution to send email."""
+    """Validate version and resume graph execution to send email, with fallback for historical drafts."""
     config = {"configurable": {"thread_id": workflow_id}}
     graph = app.state.graph
+    state = graph.get_state(config)
 
-    result = graph.invoke(
-        Command(resume={
-            "action": "approve",
-            "subject": payload.subject,
-            "body": payload.body
-        }),
-        config=config
+    final_status = "sent"
+    msg_id = None
+    is_live_interrupted = bool(
+        state is not None
+        and state.values
+        and getattr(state, "next", None)
+        and "human_review" in state.next
     )
 
-    final_status = result.get("status", "sent")
-    msg_id = result.get("gmail_message_id")
+    if is_live_interrupted:
+        try:
+            result = graph.invoke(
+                Command(resume={
+                    "action": "approve",
+                    "subject": payload.subject,
+                    "body": payload.body
+                }),
+                config=config
+            )
+            final_status = result.get("status", "sent")
+            msg_id = result.get("gmail_message_id")
+        except Exception as e:
+            print(f"[Approve] Graph resume failed ({e}), executing direct approval dispatch.")
+            is_live_interrupted = False
 
-    # Update record
+    if not is_live_interrupted:
+        # Determine recipient from payload, in-memory records, or database
+        recipient = payload.recipient
+        if not recipient:
+            for rec in EMAIL_RECORDS:
+                if rec.get("workflow_id") == workflow_id and rec.get("recipient"):
+                    recipient = rec.get("recipient")
+                    break
+
+        if not recipient:
+            try:
+                from database import SessionLocal
+                from schemas import EmailRecordModel
+                with SessionLocal() as db_session:
+                    db_rec = db_session.query(EmailRecordModel).filter(EmailRecordModel.workflow_id == workflow_id).first()
+                    if db_rec and db_rec.recipient:
+                        recipient = db_rec.recipient
+            except Exception:
+                pass
+
+        if not recipient:
+            recipient = "recipient@company.com"
+
+        # Dispatch through Gmail service directly
+        try:
+            from backend.gmail_service import gmail_send_approved_email
+        except ImportError:
+            from gmail_service import gmail_send_approved_email
+
+        try:
+            msg_id = gmail_send_approved_email(
+                user_id=user_id,
+                recipient=recipient,
+                subject=payload.subject,
+                body=payload.body,
+                idempotency_key=f"send-{workflow_id}"
+            )
+            final_status = "sent"
+        except Exception as exc:
+            print(f"[Approve] Gmail dispatch error: {exc}")
+            raise HTTPException(status_code=500, detail=f"Failed to transmit email: {exc}")
+
+    # Update in-memory record
+    found = False
     for rec in EMAIL_RECORDS:
-        if rec["workflow_id"] == workflow_id:
+        if rec.get("workflow_id") == workflow_id:
             rec["status"] = final_status
             rec["gmail_message_id"] = msg_id
             rec["draft_subject"] = payload.subject
             rec["draft_body"] = payload.body
+            found = True
             break
+
+    if not found:
+        EMAIL_RECORDS.insert(0, {
+            "workflow_id": workflow_id,
+            "recipient": recipient if not is_live_interrupted else state.values.get("recipient", ""),
+            "subject": payload.subject,
+            "tone": "professional",
+            "context": "",
+            "draft_subject": payload.subject,
+            "draft_body": payload.body,
+            "status": final_status,
+            "gmail_message_id": msg_id,
+            "version": 1,
+            "created_at": datetime.utcnow().isoformat()
+        })
+
+    # Update persistent database if available
+    try:
+        from database import SessionLocal
+        from schemas import EmailRecordModel
+        with SessionLocal() as db_session:
+            db_rec = db_session.query(EmailRecordModel).filter(EmailRecordModel.workflow_id == workflow_id).first()
+            if db_rec:
+                db_rec.status = final_status
+                db_rec.draft_subject = payload.subject
+                db_rec.draft_body = payload.body
+                if msg_id:
+                    db_rec.gmail_message_id = msg_id
+                db_session.commit()
+    except Exception:
+        pass
 
     return {
         "workflow_id": workflow_id,
@@ -354,20 +443,37 @@ def reject_email(
     workflow_id: str,
     user_id: str = Depends(get_current_user_id)
 ):
-    """Reject the draft and terminate workflow."""
+    """Reject the draft and terminate workflow, with fallback for historical drafts."""
     config = {"configurable": {"thread_id": workflow_id}}
     graph = app.state.graph
+    state = graph.get_state(config)
 
-    result = graph.invoke(
-        Command(resume={"action": "reject"}),
-        config=config
-    )
+    if state is not None and state.values and getattr(state, "next", None) and "human_review" in state.next:
+        try:
+            graph.invoke(
+                Command(resume={"action": "reject"}),
+                config=config
+            )
+        except Exception as e:
+            print(f"[Reject] Graph resume failed ({e})")
 
-    # Update record
+    # Update in-memory record
     for rec in EMAIL_RECORDS:
-        if rec["workflow_id"] == workflow_id:
+        if rec.get("workflow_id") == workflow_id:
             rec["status"] = "rejected"
             break
+
+    # Update persistent database if available
+    try:
+        from database import SessionLocal
+        from schemas import EmailRecordModel
+        with SessionLocal() as db_session:
+            db_rec = db_session.query(EmailRecordModel).filter(EmailRecordModel.workflow_id == workflow_id).first()
+            if db_rec:
+                db_rec.status = "rejected"
+                db_session.commit()
+    except Exception:
+        pass
 
     return {"workflow_id": workflow_id, "status": "rejected"}
 

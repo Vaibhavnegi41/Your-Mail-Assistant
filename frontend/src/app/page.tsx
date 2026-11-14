@@ -244,7 +244,7 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      const res = await approveEmail(workflowId, draft.draft_subject, draft.draft_body);
+      const res = await approveEmail(workflowId, draft.draft_subject, draft.draft_body, draft.recipient);
       const dispatchedRecipient = draft.recipient;
       const dispatchedSubject = draft.draft_subject;
       const dispatchedBody = draft.draft_body;
@@ -253,15 +253,33 @@ export default function Home() {
       setIsApproveModalOpen(false);
 
       // Update records
-      const updated = records.map(r =>
-        r.workflow_id === currentWorkflowId ? {
-          ...r,
-          status: 'sent' as WorkflowStatus,
-          draft_subject: dispatchedSubject,
-          draft_body: dispatchedBody,
-          gmail_message_id: res.gmail_message_id || 'sent-ok'
-        } : r
-      );
+      const exists = records.some(r => r.workflow_id === currentWorkflowId);
+      const updated = exists
+        ? records.map(r =>
+            r.workflow_id === currentWorkflowId ? {
+              ...r,
+              status: 'sent' as WorkflowStatus,
+              draft_subject: dispatchedSubject,
+              draft_body: dispatchedBody,
+              gmail_message_id: res.gmail_message_id || 'sent-ok'
+            } : r
+          )
+        : [
+            {
+              workflow_id: currentWorkflowId,
+              recipient: dispatchedRecipient,
+              subject: dispatchedSubject,
+              tone: tone,
+              context: context,
+              draft_subject: dispatchedSubject,
+              draft_body: dispatchedBody,
+              status: 'sent' as WorkflowStatus,
+              gmail_message_id: res.gmail_message_id || 'sent-ok',
+              version: draft.version || 1,
+              created_at: new Date().toISOString()
+            },
+            ...records
+          ];
       saveRecordsToCache(updated);
 
       setLastDispatchedInfo({
@@ -301,9 +319,26 @@ export default function Home() {
       setIsRejectModalOpen(false);
 
       // Update records
-      const updated = records.map(r =>
-        r.workflow_id === currentWorkflowId ? { ...r, status: 'rejected' as WorkflowStatus } : r
-      );
+      const exists = records.some(r => r.workflow_id === currentWorkflowId);
+      const updated = exists
+        ? records.map(r =>
+            r.workflow_id === currentWorkflowId ? { ...r, status: 'rejected' as WorkflowStatus } : r
+          )
+        : [
+            {
+              workflow_id: currentWorkflowId,
+              recipient: draft?.recipient || recipient,
+              subject: draft?.draft_subject || subject,
+              tone: tone,
+              context: context,
+              draft_subject: draft?.draft_subject || subject,
+              draft_body: draft?.draft_body || '',
+              status: 'rejected' as WorkflowStatus,
+              version: draft?.version || 1,
+              created_at: new Date().toISOString()
+            },
+            ...records
+          ];
       saveRecordsToCache(updated);
 
       // Clear both the form details and draft generated mail back to initial empty state
@@ -346,22 +381,55 @@ export default function Home() {
   // ------------------------------------------------------------------
   const handleLoadRecordInComposer = (rec: EmailRecord) => {
     setRecipient(rec.recipient);
-    setSubject(rec.draft_subject || rec.subject);
+    setSubject(rec.draft_subject || rec.subject || '');
     setTone((rec.tone as EmailFormData['tone']) || 'professional');
     if (rec.context) setContext(rec.context);
 
     setDraft({
       workflow_id: rec.workflow_id,
       recipient: rec.recipient,
-      draft_subject: rec.draft_subject,
-      draft_body: rec.draft_body,
-      version: rec.version,
+      draft_subject: rec.draft_subject || rec.subject || '',
+      draft_body: rec.draft_body || '',
+      version: rec.version || 1,
       status: rec.status,
     });
     setWorkflowId(rec.workflow_id);
     setStatus(rec.status);
     setActiveTab('composer');
     setComposerSubTab('draft');
+  };
+
+  // ------------------------------------------------------------------
+  // Direct Actions from Inspect Modal
+  // ------------------------------------------------------------------
+  const handleApproveRecordFromInspect = (rec: EmailRecord) => {
+    setDraft({
+      workflow_id: rec.workflow_id,
+      recipient: rec.recipient,
+      draft_subject: rec.draft_subject || rec.subject || '',
+      draft_body: rec.draft_body || '',
+      version: rec.version || 1,
+      status: rec.status,
+    });
+    setWorkflowId(rec.workflow_id);
+    setRecipient(rec.recipient);
+    setSubject(rec.draft_subject || rec.subject || '');
+    setIsApproveModalOpen(true);
+  };
+
+  const handleRejectRecordFromInspect = (rec: EmailRecord) => {
+    setDraft({
+      workflow_id: rec.workflow_id,
+      recipient: rec.recipient,
+      draft_subject: rec.draft_subject || rec.subject || '',
+      draft_body: rec.draft_body || '',
+      version: rec.version || 1,
+      status: rec.status,
+    });
+    setWorkflowId(rec.workflow_id);
+    setRecipient(rec.recipient);
+    setSubject(rec.draft_subject || rec.subject || '');
+    setIsRejectModalOpen(true);
   };
 
   // Pending count for sidebar badge
@@ -840,6 +908,8 @@ export default function Home() {
         record={inspectingRecord}
         onClose={() => setInspectingRecord(null)}
         onLoadInComposer={handleLoadRecordInComposer}
+        onApproveRecord={handleApproveRecordFromInspect}
+        onRejectRecord={handleRejectRecordFromInspect}
         onDeleteRecord={(workflowId) => {
           const updated = records.filter(r => r.workflow_id !== workflowId);
           saveRecordsToCache(updated);

@@ -297,17 +297,17 @@ def validate_draft(state: EmailState):
 def human_review(state: EmailState):
     """Pause graph execution using interrupt() to present draft to user."""
     decision = interrupt({
-        "recipient": state["recipient"],
-        "subject": state["draft_subject"],
-        "body": state["draft_body"],
+        "recipient": state.get("recipient", ""),
+        "subject": state.get("draft_subject", ""),
+        "body": state.get("draft_body", ""),
         "version": state.get("version", 1),
         "message": "Review, edit, approve, or reject this email."
     })
 
     if decision.get("action") == "approve":
         return {
-            "approved_subject": decision.get("subject", state["draft_subject"]),
-            "approved_body": decision.get("body", state["draft_body"]),
+            "approved_subject": decision.get("subject", state.get("draft_subject", "")),
+            "approved_body": decision.get("body", state.get("draft_body", "")),
             "status": "approved"
         }
     elif decision.get("action") == "reject":

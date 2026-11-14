@@ -33,7 +33,8 @@ export async function getReviewPayload(workflowId: string): Promise<ReviewDraft>
 export async function approveEmail(
   workflowId: string,
   subject: string,
-  body: string
+  body: string,
+  recipient?: string
 ): Promise<{ workflow_id: string; status: string; gmail_message_id?: string }> {
   const response = await fetch(`${API_URL}/emails/${workflowId}/approve`, {
     method: 'POST',
@@ -41,7 +42,7 @@ export async function approveEmail(
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ subject, body }),
+    body: JSON.stringify({ subject, body, recipient }),
   });
 
   if (!response.ok) {

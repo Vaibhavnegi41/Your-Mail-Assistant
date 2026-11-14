@@ -208,7 +208,7 @@ const SeeContextModal: React.FC<SeeContextModalProps> = ({ isOpen, doc, onClose,
             Context Content
           </span>
           <div style={{
-            background: 'rgba(15,23,42,0.75)',
+            background: '#0c0c0e',
             border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: 10, padding: '14px 16px',
             fontSize: '0.875rem', color: '#cbd5e1',
@@ -418,7 +418,7 @@ export const VaultView: React.FC<VaultViewProps> = ({ onUseInComposer }) => {
           alignItems: 'center',
           justifyContent: 'center',
           padding: '60px 20px',
-          background: 'rgba(15, 23, 42, 0.4)',
+          background: 'rgba(12, 12, 14, 0.6)',
           borderRadius: 12,
           border: '1px dashed rgba(255, 255, 255, 0.1)',
           color: '#64748b',

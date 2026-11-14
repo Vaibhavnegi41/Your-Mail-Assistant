@@ -14,6 +14,7 @@ class EmailGenerateRequest(BaseModel):
 class EmailApprovalRequest(BaseModel):
     subject: str
     body: str
+    recipient: Optional[str] = None
 
 
 class EmailReviewResponse(BaseModel):

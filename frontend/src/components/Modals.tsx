@@ -487,6 +487,8 @@ interface InspectRecordModalProps {
   onClose: () => void;
   onLoadInComposer?: (record: EmailRecord) => void;
   onDeleteRecord?: (workflowId: string) => void;
+  onApproveRecord?: (record: EmailRecord) => void;
+  onRejectRecord?: (record: EmailRecord) => void;
 }
 
 export const InspectRecordModal: React.FC<InspectRecordModalProps> = ({
@@ -495,6 +497,8 @@ export const InspectRecordModal: React.FC<InspectRecordModalProps> = ({
   onClose,
   onLoadInComposer,
   onDeleteRecord,
+  onApproveRecord,
+  onRejectRecord,
 }) => {
   const [copied, setCopied] = React.useState(false);
   const [confirmingDelete, setConfirmingDelete] = React.useState(false);
@@ -614,7 +618,7 @@ export const InspectRecordModal: React.FC<InspectRecordModalProps> = ({
           </div>
           <div
             style={{
-              background: 'rgba(15, 23, 42, 0.7)',
+              background: '#09090b',
               border: '1px solid rgba(255,255,255,0.08)',
               borderRadius: '8px',
               padding: '16px',
@@ -692,8 +696,44 @@ export const InspectRecordModal: React.FC<InspectRecordModalProps> = ({
             )}
           </div>
 
-          {/* Right: Load into Composer */}
-          <div>
+          {/* Right: Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            {onRejectRecord && record.status === 'pending_review' && (
+              <button
+                type="button"
+                className="btn-canvas-secondary"
+                style={{ color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                onClick={() => {
+                  onRejectRecord(record);
+                  onClose();
+                }}
+              >
+                Reject Draft
+              </button>
+            )}
+            {onApproveRecord && record.status === 'pending_review' && (
+              <button
+                type="button"
+                className="btn-canvas-primary"
+                style={{
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: '#ffffff',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '7px 16px',
+                  borderRadius: '8px'
+                }}
+                onClick={() => {
+                  onApproveRecord(record);
+                  onClose();
+                }}
+              >
+                <Send size={14} />
+                Approve & Send
+              </button>
+            )}
             {onLoadInComposer && (
               <button
                 type="button"
