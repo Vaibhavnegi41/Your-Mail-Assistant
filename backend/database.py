@@ -5,14 +5,25 @@ from sqlalchemy.orm import sessionmaker
 
 raw_db_url = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/ai_email_assistant")
 
+# --- Single Postgres availability probe, cached at module load ---
+# Avoids duplicate 500ms socket timeouts when both get_engine() and
+# init_checkpointer() check Postgres availability on startup.
+_POSTGRES_AVAILABLE: bool | None = None
+
 
 def is_postgres_available(host: str = "localhost", port: int = 5432, timeout: float = 0.5) -> bool:
-    """Quick socket check to verify whether Postgres is reachable without blocking startup."""
+    """Quick socket check to verify whether Postgres is reachable.
+    Result is cached so the probe runs at most once per process lifetime.
+    """
+    global _POSTGRES_AVAILABLE
+    if _POSTGRES_AVAILABLE is not None:
+        return _POSTGRES_AVAILABLE
     try:
         with socket.create_connection((host, port), timeout=timeout):
-            return True
+            _POSTGRES_AVAILABLE = True
     except (socket.timeout, ConnectionRefusedError, OSError):
-        return False
+        _POSTGRES_AVAILABLE = False
+    return _POSTGRES_AVAILABLE
 
 
 def get_engine():
@@ -52,6 +63,7 @@ checkpointer = None
 def init_checkpointer():
     global _checkpointer_cm, checkpointer
     if checkpointer is None:
+        # Re-uses cached result from module-level probe — no second socket call
         if is_postgres_available():
             try:
                 from langgraph.checkpoint.postgres import PostgresSaver

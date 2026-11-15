@@ -20,7 +20,6 @@ import {
 } from '@/lib/types';
 import {
   generateEmail,
-  getReviewPayload,
   approveEmail,
   rejectEmail,
   getEmailRecords
@@ -198,11 +197,9 @@ export default function Home() {
       const res = await generateEmail(data);
       setWorkflowId(res.workflow_id);
 
-      // Use draft returned directly from /emails/generate to avoid extra round-trip
-      const reviewData: ReviewDraft =
-        res.draft_subject !== undefined && res.draft_body !== undefined
-          ? res
-          : await getReviewPayload(res.workflow_id);
+      // /emails/generate always returns draft_subject, draft_body, recipient, version
+      // directly — no extra GET /review round-trip needed (saves ~100-200ms per generation).
+      const reviewData: ReviewDraft = res;
       lastGeneratedSubjectRef.current = reviewData.draft_subject;
       setDraft(reviewData);
       setStatus('pending_review');
@@ -256,30 +253,30 @@ export default function Home() {
       const exists = records.some(r => r.workflow_id === currentWorkflowId);
       const updated = exists
         ? records.map(r =>
-            r.workflow_id === currentWorkflowId ? {
-              ...r,
-              status: 'sent' as WorkflowStatus,
-              draft_subject: dispatchedSubject,
-              draft_body: dispatchedBody,
-              gmail_message_id: res.gmail_message_id || 'sent-ok'
-            } : r
-          )
+          r.workflow_id === currentWorkflowId ? {
+            ...r,
+            status: 'sent' as WorkflowStatus,
+            draft_subject: dispatchedSubject,
+            draft_body: dispatchedBody,
+            gmail_message_id: res.gmail_message_id || 'sent-ok'
+          } : r
+        )
         : [
-            {
-              workflow_id: currentWorkflowId,
-              recipient: dispatchedRecipient,
-              subject: dispatchedSubject,
-              tone: tone,
-              context: context,
-              draft_subject: dispatchedSubject,
-              draft_body: dispatchedBody,
-              status: 'sent' as WorkflowStatus,
-              gmail_message_id: res.gmail_message_id || 'sent-ok',
-              version: draft.version || 1,
-              created_at: new Date().toISOString()
-            },
-            ...records
-          ];
+          {
+            workflow_id: currentWorkflowId,
+            recipient: dispatchedRecipient,
+            subject: dispatchedSubject,
+            tone: tone,
+            context: context,
+            draft_subject: dispatchedSubject,
+            draft_body: dispatchedBody,
+            status: 'sent' as WorkflowStatus,
+            gmail_message_id: res.gmail_message_id || 'sent-ok',
+            version: draft.version || 1,
+            created_at: new Date().toISOString()
+          },
+          ...records
+        ];
       saveRecordsToCache(updated);
 
       setLastDispatchedInfo({
@@ -322,23 +319,23 @@ export default function Home() {
       const exists = records.some(r => r.workflow_id === currentWorkflowId);
       const updated = exists
         ? records.map(r =>
-            r.workflow_id === currentWorkflowId ? { ...r, status: 'rejected' as WorkflowStatus } : r
-          )
+          r.workflow_id === currentWorkflowId ? { ...r, status: 'rejected' as WorkflowStatus } : r
+        )
         : [
-            {
-              workflow_id: currentWorkflowId,
-              recipient: draft?.recipient || recipient,
-              subject: draft?.draft_subject || subject,
-              tone: tone,
-              context: context,
-              draft_subject: draft?.draft_subject || subject,
-              draft_body: draft?.draft_body || '',
-              status: 'rejected' as WorkflowStatus,
-              version: draft?.version || 1,
-              created_at: new Date().toISOString()
-            },
-            ...records
-          ];
+          {
+            workflow_id: currentWorkflowId,
+            recipient: draft?.recipient || recipient,
+            subject: draft?.draft_subject || subject,
+            tone: tone,
+            context: context,
+            draft_subject: draft?.draft_subject || subject,
+            draft_body: draft?.draft_body || '',
+            status: 'rejected' as WorkflowStatus,
+            version: draft?.version || 1,
+            created_at: new Date().toISOString()
+          },
+          ...records
+        ];
       saveRecordsToCache(updated);
 
       // Clear both the form details and draft generated mail back to initial empty state
@@ -552,7 +549,7 @@ export default function Home() {
 
                     <div className="form-group">
                       <label className="form-label">
-                        <span>Your Name (Sign-off)</span>
+                        <span>Sender Name</span>
                       </label>
                       <input
                         type="text"

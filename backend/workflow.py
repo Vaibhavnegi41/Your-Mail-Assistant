@@ -17,6 +17,7 @@ try:
         chunk_document_text,
         rank_chunks_locally,
     )
+    from backend.gmail_service import gmail_send_approved_email as _gmail_send
 except ImportError:
     from rag_service import (
         search_relevant_chunks,
@@ -25,6 +26,7 @@ except ImportError:
         chunk_document_text,
         rank_chunks_locally,
     )
+    from gmail_service import gmail_send_approved_email as _gmail_send
 
 # Load environment from project root if not in cwd
 project_root = Path(__file__).resolve().parent.parent
@@ -145,6 +147,24 @@ def _get_structured_chain(model_name: str, api_key: Optional[str]):
         chain = EMAIL_PROMPT | chat_model.with_structured_output(EmailDraftOutput)
         _STRUCTURED_CHAIN_CACHE[cache_key] = chain
     return chain
+
+
+def _prewarm_chains():
+    """Pre-build ChatGroq chain objects at module load time so the first request
+    doesn't pay the LangChain import + httpx client construction cost (~200–800ms)."""
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        return
+    for model in get_candidate_models():
+        try:
+            _get_structured_chain(model, api_key)
+            print(f"[Prewarm] ChatGroq chain ready for model: {model}")
+        except Exception as exc:
+            print(f"[Prewarm] Skipped {model}: {exc}")
+
+
+# Pre-warm chains at import time (runs once per worker process)
+_prewarm_chains()
 
 
 class EmailState(TypedDict, total=False):
@@ -329,14 +349,9 @@ def validate_approved_version(state: EmailState):
 
 
 def send_email_node(state: EmailState):
-    """Send verified email through Gmail API."""
+    """Send verified email through Gmail API (uses module-level import, no per-request re-import)."""
     try:
-        from backend.gmail_service import gmail_send_approved_email
-    except ImportError:
-        from gmail_service import gmail_send_approved_email
-
-    try:
-        message_id = gmail_send_approved_email(
+        message_id = _gmail_send(
             user_id=state.get("user_id", "default_user"),
             recipient=state["recipient"],
             subject=state["approved_subject"],

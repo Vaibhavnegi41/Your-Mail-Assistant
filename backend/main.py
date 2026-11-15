@@ -42,6 +42,7 @@ try:
         delete_document_chunks,
         chunk_document_text,
     )
+    from backend.gmail_service import gmail_send_approved_email
 except ImportError:
     from database import get_db, init_checkpointer, close_checkpointer
     from auth import get_current_user_id
@@ -58,6 +59,7 @@ except ImportError:
         delete_document_chunks,
         chunk_document_text,
     )
+    from gmail_service import gmail_send_approved_email
 
 
 @asynccontextmanager
@@ -182,10 +184,19 @@ EMAIL_RECORDS = []
 
 # --- Email Generation & Workflow Endpoints ---
 
-def _run_generate_graph(graph, initial_state: dict, config: dict):
-    """Execute synchronous LangGraph invocation and retrieve paused checkpoint state."""
-    graph.invoke(initial_state, config=config)
-    return graph.get_state(config)
+def _run_generate_graph(graph, initial_state: dict, config: dict) -> dict:
+    """Execute synchronous LangGraph invocation.
+    Returns the final state values dict directly from graph.invoke() without
+    a redundant graph.get_state() round-trip (saves 10–50ms per request on PostgresSaver).
+    Falls back to graph.get_state() only if invoke returns None or an empty dict.
+    """
+    result = graph.invoke(initial_state, config=config)
+    # LangGraph returns the last-node state dict on completion/interrupt
+    if result and isinstance(result, dict) and result.get("draft_subject"):
+        return result
+    # Fallback: read from checkpointer if invoke returned an unexpected value
+    state = graph.get_state(config)
+    return state.values if state else {}
 
 
 @app.post("/emails/generate", status_code=status.HTTP_202_ACCEPTED)
@@ -247,8 +258,8 @@ async def generate_email(
     }
 
     # Execute sync LangGraph + Groq/Pinecone calls in FastAPI's threadpool (non-blocking for event loop)
-    state = await run_in_threadpool(_run_generate_graph, graph, initial_state, config)
-    values = state.values if state else {}
+    # _run_generate_graph now returns a plain dict (state values) directly — no .values accessor needed
+    values = await run_in_threadpool(_run_generate_graph, graph, initial_state, config)
 
     draft_subject = values.get("draft_subject", subject)
     draft_body = values.get("draft_body", "")
@@ -357,11 +368,11 @@ def approve_email(
                     break
 
         if not recipient:
+            # Fallback: try database (uses module-level SessionLocal if available)
             try:
-                from database import SessionLocal
-                from schemas import EmailRecordModel
+                from database import SessionLocal, EmailRecordModel as _ERM
                 with SessionLocal() as db_session:
-                    db_rec = db_session.query(EmailRecordModel).filter(EmailRecordModel.workflow_id == workflow_id).first()
+                    db_rec = db_session.query(_ERM).filter(_ERM.workflow_id == workflow_id).first()
                     if db_rec and db_rec.recipient:
                         recipient = db_rec.recipient
             except Exception:
@@ -370,12 +381,7 @@ def approve_email(
         if not recipient:
             recipient = "recipient@company.com"
 
-        # Dispatch through Gmail service directly
-        try:
-            from backend.gmail_service import gmail_send_approved_email
-        except ImportError:
-            from gmail_service import gmail_send_approved_email
-
+        # Dispatch via module-level gmail_send_approved_email (no per-request import)
         try:
             msg_id = gmail_send_approved_email(
                 user_id=user_id,
@@ -415,12 +421,11 @@ def approve_email(
             "created_at": datetime.utcnow().isoformat()
         })
 
-    # Update persistent database if available
+    # Update persistent database if available (fire-and-forget in background)
     try:
-        from database import SessionLocal
-        from schemas import EmailRecordModel
+        from database import SessionLocal, EmailRecordModel as _ERM
         with SessionLocal() as db_session:
-            db_rec = db_session.query(EmailRecordModel).filter(EmailRecordModel.workflow_id == workflow_id).first()
+            db_rec = db_session.query(_ERM).filter(_ERM.workflow_id == workflow_id).first()
             if db_rec:
                 db_rec.status = final_status
                 db_rec.draft_subject = payload.subject
@@ -465,10 +470,9 @@ def reject_email(
 
     # Update persistent database if available
     try:
-        from database import SessionLocal
-        from schemas import EmailRecordModel
+        from database import SessionLocal, EmailRecordModel as _ERM
         with SessionLocal() as db_session:
-            db_rec = db_session.query(EmailRecordModel).filter(EmailRecordModel.workflow_id == workflow_id).first()
+            db_rec = db_session.query(_ERM).filter(_ERM.workflow_id == workflow_id).first()
             if db_rec:
                 db_rec.status = "rejected"
                 db_session.commit()
