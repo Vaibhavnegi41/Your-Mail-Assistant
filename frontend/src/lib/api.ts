@@ -32,7 +32,9 @@ function authHeaders(): Record<string, string> {
 function handleUnauthorized(response: Response): void {
   if (response.status === 401 && _extensionToken) {
     _extensionToken = null;
-    window?.postMessage({ type: 'REQUEST_AUTH_TOKEN_REFRESH' }, '*');
+    if (typeof window !== 'undefined') {
+      window.parent?.postMessage({ type: 'REQUEST_AUTH_TOKEN_REFRESH' }, '*');
+    }
   }
 }
 

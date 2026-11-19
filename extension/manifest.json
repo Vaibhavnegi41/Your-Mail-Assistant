@@ -3,22 +3,20 @@
   "name": "AI Email Assistant",
   "version": "1.0.0",
   "description": "Generate, review, and approve AI-drafted emails using LangGraph HITL — directly in Gmail.",
-
   "permissions": [
     "identity",
     "sidePanel",
     "storage"
   ],
-
   "host_permissions": [
     "https://gmail.googleapis.com/*",
     "https://oauth2.googleapis.com/*",
+    "https://www.googleapis.com/*",
     "http://localhost:8000/*",
     "http://127.0.0.1:8000/*"
   ],
-
   "oauth2": {
-    "client_id": "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
+    "client_id": "325231381568-gfroom11992oc6047bj3tt11msk3rhpq.apps.googleusercontent.com",
     "scopes": [
       "openid",
       "email",
@@ -26,7 +24,6 @@
       "https://www.googleapis.com/auth/gmail.send"
     ]
   },
-
   "action": {
     "default_title": "Open AI Email Assistant",
     "default_icon": {
@@ -35,20 +32,16 @@
       "128": "icons/icon128.png"
     }
   },
-
   "background": {
     "service_worker": "service-worker.js",
     "type": "module"
   },
-
   "side_panel": {
     "default_path": "sidepanel.html"
   },
-
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'; frame-src 'self' http://localhost:3000 http://localhost:3001 http://127.0.0.1:3000 http://127.0.0.1:3001;"
   },
-
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",

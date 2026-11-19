@@ -36,7 +36,8 @@ import {
   X,
   ShieldCheck,
   Clock,
-  AlertCircle
+  AlertCircle,
+  LogOut
 } from 'lucide-react';
 
 const GENERATING_STEPS = [
@@ -88,6 +89,15 @@ export default function Home() {
   // Clipboard
   const [copiedCanvas, setCopiedCanvas] = useState(false);
 
+  // User Profile & Popover State
+  const [userProfile, setUserProfile] = useState<{
+    email: string;
+    name: string;
+    picture?: string;
+  } | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileContainerRef = useRef<HTMLDivElement>(null);
+
   // Live Generating Status Messages
   const [generatingStepIndex, setGeneratingStepIndex] = useState(0);
 
@@ -133,6 +143,69 @@ export default function Home() {
       if (savedSender !== null) setSenderName(savedSender);
     } catch { }
   }, []);
+
+  // Listen for extension auth profile & handle outside click / Escape
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'EXTENSION_AUTH_TOKEN' && event.data.userInfo) {
+        setUserProfile(event.data.userInfo);
+        try {
+          localStorage.setItem('user_profile_cache', JSON.stringify(event.data.userInfo));
+        } catch {}
+      }
+    };
+    window.addEventListener('message', handleMessage);
+
+    try {
+      const cached = localStorage.getItem('user_profile_cache');
+      if (cached) setUserProfile(JSON.parse(cached));
+    } catch {}
+
+    if (typeof window !== 'undefined' && window.parent) {
+      window.parent.postMessage({ type: 'FRONTEND_READY' }, '*');
+    }
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileContainerRef.current && !profileContainerRef.current.contains(e.target as Node)) {
+        setIsProfileOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsProfileOpen(false);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  const handleSignOut = () => {
+    setIsProfileOpen(false);
+    setUserProfile(null);
+    try {
+      localStorage.removeItem('user_profile_cache');
+    } catch {}
+    if (typeof window !== 'undefined' && window.parent) {
+      window.parent.postMessage({ type: 'SIGN_OUT' }, '*');
+    }
+  };
+
+  const getUserInitials = () => {
+    if (userProfile?.name && userProfile.name.trim()) {
+      const parts = userProfile.name.trim().split(' ');
+      if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+      return userProfile.name.slice(0, 2).toUpperCase();
+    }
+    if (userProfile?.email) {
+      return userProfile.email[0].toUpperCase();
+    }
+    return 'VN';
+  };
 
   // Save records to cache
   const saveRecordsToCache = (updated: EmailRecord[]) => {
@@ -462,9 +535,65 @@ export default function Home() {
 
           </div>
 
-          <div className="top-header-right">
+          <div className="top-header-right relative" ref={profileContainerRef}>
+            <button
+              type="button"
+              onClick={() => setIsProfileOpen(prev => !prev)}
+              className="mobile-header-avatar cursor-pointer hover:ring-2 hover:ring-blue-500/50 transition-all overflow-hidden focus:outline-none"
+              title={userProfile?.name || 'Account & Profile'}
+              aria-label="Account details"
+            >
+              {userProfile?.picture ? (
+                <img
+                  src={userProfile.picture}
+                  alt={userProfile.name || 'User'}
+                  className="w-full h-full object-cover rounded-full"
+                />
+              ) : (
+                <span>{getUserInitials()}</span>
+              )}
+            </button>
 
-            <div className="mobile-header-avatar" title="Vaibhav Negi">VN</div>
+            {/* Profile Dropdown Popover */}
+            {isProfileOpen && (
+              <div className="absolute right-0 top-9 w-60 bg-[#0d1117] border border-white/10 rounded-xl shadow-2xl p-3 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-xs font-semibold text-white shrink-0 overflow-hidden border border-white/10">
+                    {userProfile?.picture ? (
+                      <img src={userProfile.picture} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{getUserInitials()}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold text-slate-100 truncate">
+                      {userProfile?.name || 'Vaibhav Negi'}
+                    </div>
+                    <div
+                      className="text-[11px] text-slate-400 truncate mt-0.5"
+                      title={userProfile?.email || 'Authenticated account'}
+                    >
+                      {userProfile?.email || 'Authenticated via Google'}
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      Authenticated
+                    </div>
+                  </div>
+                </div>
+
+                <div className="h-px bg-white/10 my-2.5"></div>
+
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 text-xs font-medium border border-red-500/20 transition-all cursor-pointer"
+                >
+                  <LogOut size={13} />
+                  <span>Log out</span>
+                </button>
+              </div>
+            )}
           </div>
         </header>
 

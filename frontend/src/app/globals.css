@@ -117,7 +117,7 @@
   }
 
   .mobile-header-avatar {
-    @apply hidden;
+    @apply flex w-7 h-7 rounded-full bg-gradient-to-br from-slate-800 to-slate-700 border border-white/10 items-center justify-center text-[11px] font-semibold text-slate-300 cursor-pointer hover:border-white/30 transition-all;
   }
 
   .view-title {

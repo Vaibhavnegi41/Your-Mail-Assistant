@@ -1,32 +1,12 @@
-/**
- * service-worker.js — Chrome Extension Background Service Worker
- *
- * Responsibilities:
- *  1. Open the side panel when the extension icon is clicked
- *  2. Handle Google OAuth login via chrome.identity.getAuthToken()
- *  3. Cache and refresh the access token in chrome.storage.session
- *  4. Listen for messages from sidepanel.js to trigger auth or token refresh
- *
- * Message API (from sidepanel → service worker):
- *   { type: "GET_AUTH_TOKEN" }           → returns { token, email, userId }
- *   { type: "SIGN_OUT" }                 → clears cached token + revokes
- *   { type: "GET_USER_INFO" }            → returns cached { email, userId } or null
- */
 
 const API_BASE = 'http://127.0.0.1:8000';
 
-// ─────────────────────────────────────────────
-// 1. Open side panel on icon click
-// ─────────────────────────────────────────────
 chrome.action.onClicked.addListener(async (tab) => {
   if (tab.windowId !== undefined) {
     await chrome.sidePanel.open({ windowId: tab.windowId });
   }
 });
 
-// ─────────────────────────────────────────────
-// 2. Auth helpers
-// ─────────────────────────────────────────────
 
 /**
  * Get a valid Google OAuth2 access token using Chrome's identity API.
@@ -43,12 +23,13 @@ chrome.action.onClicked.addListener(async (tab) => {
 async function getAuthToken(interactive = false) {
   return new Promise((resolve) => {
     chrome.identity.getAuthToken({ interactive }, (token) => {
-      if (chrome.runtime.lastError || !token) {
-        console.warn('[Auth] getAuthToken failed:', chrome.runtime.lastError?.message);
-        resolve(null);
+      const err = chrome.runtime.lastError ? chrome.runtime.lastError.message : null;
+      if (err || !token) {
+        console.warn('[Auth] getAuthToken failed:', err);
+        resolve({ token: null, error: err || 'No token received from Google' });
         return;
       }
-      resolve(token);
+      resolve({ token, error: null });
     });
   });
 }
@@ -60,15 +41,35 @@ async function getAuthToken(interactive = false) {
  * @param {string} token - Google OAuth2 access_token
  */
 async function fetchUserInfo(token) {
+  // 1. Try Google UserInfo endpoint (returns picture, full name, email)
+  try {
+    const resp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      return {
+        email: data.email || '',
+        name: data.name || data.given_name || (data.email ? data.email.split('@')[0] : 'User'),
+        picture: data.picture || '',
+        userId: data.sub || '',
+      };
+    }
+  } catch { /* fallback to tokeninfo */ }
+
+  // 2. Fallback to tokeninfo endpoint
   try {
     const resp = await fetch(
-      `https://oauth2.googleapis.com/tokeninfo?access_token=${token}`
+      `https://oauth2.googleapis.com/tokeninfo?access_token=${token}`,
+      { signal: AbortSignal.timeout(4000) }
     );
     if (!resp.ok) return null;
     const data = await resp.json();
     return {
       email: data.email || '',
-      name: data.name || data.email || '',
+      name: data.email ? data.email.split('@')[0] : 'User',
+      picture: '',
       userId: data.sub || '',
     };
   } catch {
@@ -102,13 +103,11 @@ async function revokeToken(token) {
   console.log('[Auth] Token revoked and session cleared.');
 }
 
-// ─────────────────────────────────────────────
-// 3. Message handler (sidepanel ↔ service-worker)
-// ─────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   // All handlers are async — return true to keep the message channel open
   (async () => {
-    switch (message.type) {
+    try {
+      switch (message.type) {
 
       // ── GET_AUTH_TOKEN ──────────────────────────────────────────────────
       // Called by sidepanel when it needs a fresh token (on load or after 401)
@@ -126,13 +125,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           return;
         }
 
-        const token = await getAuthToken(interactive);
+        const { token, error: authError } = await getAuthToken(interactive);
 
         if (!token) {
-          const lastErr = chrome.runtime.lastError?.message || 'Unknown error';
           sendResponse({
             success: false,
-            error: `Google sign-in failed: ${lastErr}. Make sure the Extension ID matches your Google Cloud OAuth client.`
+            error: `Google sign-in failed: ${authError || 'Unknown error'}. Make sure the Extension ID matches your Google Cloud OAuth client.`
           });
           return;
         }
@@ -181,7 +179,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           });
         }
 
-        const freshToken = await getAuthToken(false); // silent — no popup
+        const { token: freshToken } = await getAuthToken(false); // silent — no popup
         if (freshToken) {
           const userInfo = await fetchUserInfo(freshToken);
           await chrome.storage.session.set({ auth_token: freshToken, user_info: userInfo });
@@ -197,6 +195,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       default:
         sendResponse({ success: false, error: `Unknown message type: ${message.type}` });
     }
+  } catch (err) {
+    console.error('[ServiceWorker] Uncaught message error:', err);
+    sendResponse({ success: false, error: err?.message || 'Internal extension error' });
+  }
   })();
 
   return true; // keep channel open for async sendResponse
