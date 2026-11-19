@@ -28,7 +28,7 @@ from langgraph.types import Command
 
 try:
     from backend.database import get_db, init_checkpointer, close_checkpointer
-    from backend.auth import get_current_user_id
+    from backend.auth import get_current_user_id, get_token_from_request, security
     from backend.schemas import (
         EmailApprovalRequest,
         EmailReviewResponse,
@@ -45,7 +45,7 @@ try:
     from backend.gmail_service import gmail_send_approved_email
 except ImportError:
     from database import get_db, init_checkpointer, close_checkpointer
-    from auth import get_current_user_id
+    from auth import get_current_user_id, get_token_from_request, security
     from schemas import (
         EmailApprovalRequest,
         EmailReviewResponse,
@@ -182,8 +182,6 @@ def delete_document(doc_id: str, user_id: str = Depends(get_current_user_id)):
 EMAIL_RECORDS = []
 
 
-# --- Email Generation & Workflow Endpoints ---
-
 def _run_generate_graph(graph, initial_state: dict, config: dict) -> dict:
     """Execute synchronous LangGraph invocation.
     Returns the final state values dict directly from graph.invoke() without
@@ -257,8 +255,7 @@ async def generate_email(
         "version": 1
     }
 
-    # Execute sync LangGraph + Groq/Pinecone calls in FastAPI's threadpool (non-blocking for event loop)
-    # _run_generate_graph now returns a plain dict (state values) directly — no .values accessor needed
+
     values = await run_in_threadpool(_run_generate_graph, graph, initial_state, config)
 
     draft_subject = values.get("draft_subject", subject)
@@ -326,9 +323,13 @@ def get_email_review(
 def approve_email(
     workflow_id: str,
     payload: EmailApprovalRequest,
-    user_id: str = Depends(get_current_user_id)
+    credentials=Depends(security),
+    user_id: str = Depends(get_current_user_id),
 ):
     """Validate version and resume graph execution to send email, with fallback for historical drafts."""
+    # Extract raw access_token so gmail_service can call Gmail API on behalf of the user
+    access_token = get_token_from_request(credentials)
+
     config = {"configurable": {"thread_id": workflow_id}}
     graph = app.state.graph
     state = graph.get_state(config)
@@ -381,14 +382,15 @@ def approve_email(
         if not recipient:
             recipient = "recipient@company.com"
 
-        # Dispatch via module-level gmail_send_approved_email (no per-request import)
+        # Dispatch via Gmail API — passes the user's access_token for real send in production
         try:
             msg_id = gmail_send_approved_email(
                 user_id=user_id,
                 recipient=recipient,
                 subject=payload.subject,
                 body=payload.body,
-                idempotency_key=f"send-{workflow_id}"
+                idempotency_key=f"send-{workflow_id}",
+                access_token=access_token,
             )
             final_status = "sent"
         except Exception as exc:

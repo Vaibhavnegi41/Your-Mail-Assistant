@@ -2,14 +2,54 @@ import { ReviewDraft, EmailStatusResponse } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
+// ---------------------------------------------------------------------------
+// Extension Auth Token Manager
+//
+// When running inside the Chrome Extension side panel, the service worker
+// injects the Google OAuth access_token via postMessage:
+//   { type: 'EXTENSION_AUTH_TOKEN', token: '<google_access_token>' }
+//
+// All fetch calls to the backend then attach:
+//   Authorization: Bearer <token>
+//
+// If the backend returns 401, we notify the extension to refresh the token.
+// ---------------------------------------------------------------------------
+let _extensionToken: string | null = null;
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('message', (event) => {
+    if (event.data?.type === 'EXTENSION_AUTH_TOKEN' && event.data.token) {
+      _extensionToken = event.data.token;
+      console.log('[API] Extension auth token received.');
+    }
+  });
+}
+
+function authHeaders(): Record<string, string> {
+  return _extensionToken ? { Authorization: `Bearer ${_extensionToken}` } : {};
+}
+
+function handleUnauthorized(response: Response): void {
+  if (response.status === 401 && _extensionToken) {
+    _extensionToken = null;
+    window?.postMessage({ type: 'REQUEST_AUTH_TOKEN_REFRESH' }, '*');
+  }
+}
+
+// ---------------------------------------------------------------------------
+// API functions
+// ---------------------------------------------------------------------------
+
 export async function generateEmail(formData: FormData): Promise<ReviewDraft> {
   const response = await fetch(`${API_URL}/emails/generate`, {
     method: 'POST',
     credentials: 'include',
+    headers: { ...authHeaders() },
     body: formData,
   });
 
   if (!response.ok) {
+    handleUnauthorized(response);
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Unable to generate email draft');
   }
@@ -21,9 +61,11 @@ export async function getReviewPayload(workflowId: string): Promise<ReviewDraft>
   const response = await fetch(`${API_URL}/emails/${workflowId}/review`, {
     method: 'GET',
     credentials: 'include',
+    headers: { ...authHeaders() },
   });
 
   if (!response.ok) {
+    handleUnauthorized(response);
     throw new Error('Unable to fetch draft review');
   }
 
@@ -41,11 +83,13 @@ export async function approveEmail(
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
+      ...authHeaders(),
     },
     body: JSON.stringify({ subject, body, recipient }),
   });
 
   if (!response.ok) {
+    handleUnauthorized(response);
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Unable to approve email');
   }
@@ -57,9 +101,11 @@ export async function rejectEmail(workflowId: string): Promise<{ workflow_id: st
   const response = await fetch(`${API_URL}/emails/${workflowId}/reject`, {
     method: 'POST',
     credentials: 'include',
+    headers: { ...authHeaders() },
   });
 
   if (!response.ok) {
+    handleUnauthorized(response);
     throw new Error('Unable to reject draft');
   }
 
@@ -70,6 +116,7 @@ export async function getEmailStatus(workflowId: string): Promise<EmailStatusRes
   const response = await fetch(`${API_URL}/emails/${workflowId}/status`, {
     method: 'GET',
     credentials: 'include',
+    headers: { ...authHeaders() },
   });
 
   if (!response.ok) {
@@ -84,6 +131,7 @@ export async function getEmailRecords(): Promise<import('./types').EmailRecord[]
     const response = await fetch(`${API_URL}/emails/records`, {
       method: 'GET',
       credentials: 'include',
+      headers: { ...authHeaders() },
     });
     if (response.ok) {
       const data = await response.json();
@@ -109,10 +157,12 @@ export async function uploadDocumentToVault(file: File): Promise<{
   const response = await fetch(`${API_URL}/documents`, {
     method: 'POST',
     credentials: 'include',
+    headers: { ...authHeaders() },
     body: formData,
   });
 
   if (!response.ok) {
+    handleUnauthorized(response);
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Failed to upload document');
   }
@@ -125,6 +175,7 @@ export async function getUserDocuments(): Promise<any[]> {
     const response = await fetch(`${API_URL}/documents`, {
       method: 'GET',
       credentials: 'include',
+      headers: { ...authHeaders() },
     });
     if (response.ok) {
       const data = await response.json();
@@ -141,6 +192,7 @@ export async function deleteDocumentFromVault(docId: string): Promise<boolean> {
     const response = await fetch(`${API_URL}/documents/${docId}`, {
       method: 'DELETE',
       credentials: 'include',
+      headers: { ...authHeaders() },
     });
     return response.ok;
   } catch (err) {
@@ -148,4 +200,3 @@ export async function deleteDocumentFromVault(docId: string): Promise<boolean> {
     return false;
   }
 }
-
