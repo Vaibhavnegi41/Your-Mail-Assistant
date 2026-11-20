@@ -34,7 +34,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => onTabChange('composer')}
           title="AI Email Assistant"
         >
-          <Mail size={22} />
+          <img
+            src="/icons8-bot-48.png"
+            alt="AI Email Assistant"
+            width={32}
+            height={32}
+            className="w-8 h-8 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.4)]"
+          />
         </div>
 
         {/* Navigation Buttons (VS Code Activity Bar style) */}
@@ -45,7 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={() => onTabChange('composer')}
             title="Composer & HITL Review (Ctrl+1)"
           >
-            <PenTool size={20} />
+            <PenTool size={22} />
             <span className="sidebar-label">Composer</span>
           </button>
 
@@ -55,7 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={() => onTabChange('records')}
             title="Mail Records & Results (Ctrl+2)"
           >
-            <Archive size={20} />
+            <Archive size={22} />
             <span className="sidebar-label">Records</span>
             {totalRecordsCount > 0 && (
               <span
@@ -73,7 +79,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={() => onTabChange('vault')}
             title="Document Vault (Ctrl+3)"
           >
-            <FolderLock size={20} />
+            <FolderLock size={22} />
             <span className="sidebar-label">Vault</span>
           </button>
         </nav>

@@ -58,7 +58,7 @@
   }
 
   .sidebar-logo {
-    @apply w-11 h-11 rounded-xl bg-white/[0.05] border border-white/15 flex items-center justify-center text-white shadow-[0_0_20px_rgba(255,255,255,0.06)] mb-2 cursor-pointer transition-all duration-200 hover:bg-white/[0.1] hover:border-white/30;
+    @apply w-12 h-12 rounded-xl bg-white/[0.08] border border-white/20 flex items-center justify-center text-white shadow-[0_0_24px_rgba(255,255,255,0.12)] mb-2 cursor-pointer transition-all duration-200 hover:bg-white/[0.14] hover:border-white/40;
   }
 
   .sidebar-nav {
@@ -66,20 +66,20 @@
   }
 
   .sidebar-btn {
-    @apply relative w-full h-[50px] flex items-center justify-center bg-transparent border-0 text-zinc-400 cursor-pointer transition-all duration-200 hover:text-white hover:bg-white/[0.04];
+    @apply relative w-full h-[54px] flex flex-col items-center justify-center gap-1 bg-transparent border-0 text-zinc-300 cursor-pointer transition-all duration-200 hover:text-white hover:bg-white/[0.06];
   }
 
   .sidebar-btn.active {
-    @apply text-white bg-white/[0.08];
+    @apply text-white bg-white/[0.1];
   }
 
   .sidebar-btn.active::before {
     content: '';
-    @apply absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-r bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)];
+    @apply absolute left-0 top-2 bottom-2 w-[3px] rounded-r bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)];
   }
 
   .sidebar-label {
-    @apply hidden;
+    @apply block text-[11px] font-semibold text-white tracking-wide text-center;
   }
 
   .sidebar-badge {
@@ -152,11 +152,11 @@
   }
 
   .toggle-tab-btn {
-    @apply flex-1 py-2 px-3 rounded-lg text-[13px] font-semibold flex items-center justify-center gap-1.5 bg-white/[0.03] border border-white/[0.08] text-zinc-400 cursor-pointer transition-all duration-150 relative;
+    @apply flex-1 py-2 px-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 bg-white/[0.04] border border-white/[0.1] text-zinc-200 cursor-pointer transition-all duration-150 relative hover:text-white;
   }
 
   .toggle-tab-btn.active {
-    @apply bg-white/[0.1] border-white/25 text-white shadow-[0_0_12px_rgba(255,255,255,0.08)];
+    @apply bg-white/[0.12] border-white/25 text-white shadow-[0_0_12px_rgba(255,255,255,0.08)];
   }
 
   .toggle-tab-dot {
@@ -531,7 +531,7 @@
   }
 
   .vscode-sidebar {
-    @apply w-full min-w-full h-[54px] min-h-[54px] max-h-[54px] flex-row items-center justify-around p-0 border-r-0 border-t border-white/10 z-50;
+    @apply w-full min-w-full h-[58px] min-h-[58px] max-h-[58px] flex-row items-center justify-around p-0 border-r-0 border-t border-white/15 z-50 bg-[#070709];
   }
 
   .sidebar-top {
@@ -547,7 +547,7 @@
   }
 
   .sidebar-btn {
-    @apply h-[52px] flex-col gap-[3px] py-1.5 px-3 flex-1;
+    @apply h-[56px] flex-col gap-[3px] py-1 px-3 flex-1 text-zinc-300 hover:text-white;
   }
 
   .sidebar-btn.active::before {
@@ -555,7 +555,7 @@
   }
 
   .sidebar-label {
-    @apply block text-[10px] font-medium tracking-wide leading-none;
+    @apply block text-[12px] font-semibold text-white tracking-wide leading-none;
   }
 
   .sidebar-badge {
@@ -567,7 +567,7 @@
   }
 
   .main-viewport {
-    @apply h-[calc(100vh-54px)] min-h-0;
+    @apply h-[calc(100vh-58px)] min-h-0;
   }
 
   .top-header-bar {
@@ -575,7 +575,7 @@
   }
 
   .mobile-header-logo {
-    @apply flex w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/40 items-center justify-center text-blue-400 cursor-pointer;
+    @apply flex w-8 h-8 rounded-lg bg-white/[0.08] border border-white/20 items-center justify-center text-white cursor-pointer;
   }
 
   .mobile-header-avatar {
@@ -583,7 +583,7 @@
   }
 
   .view-title {
-    @apply text-sm;
+    @apply text-base font-bold text-white;
   }
 
   .view-pill {

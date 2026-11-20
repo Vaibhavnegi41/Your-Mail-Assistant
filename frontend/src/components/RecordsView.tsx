@@ -116,7 +116,13 @@ export const RecordsView: React.FC<RecordsViewProps> = ({
             <div className="stat-label">Total Drafts</div>
           </div>
           <div className="stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa' }}>
-            <Mail size={20} />
+            <img
+              src="/icons8-bot-48.png"
+              alt="Bot"
+              width={20}
+              height={20}
+              className="w-5 h-5 object-contain"
+            />
           </div>
         </div>
 
@@ -213,7 +219,13 @@ export const RecordsView: React.FC<RecordsViewProps> = ({
       <div className="records-table-wrap">
         {filteredRecords.length === 0 ? (
           <div style={{ padding: '60px 20px', textAlign: 'center', color: '#64748b' }}>
-            <Mail size={36} style={{ margin: '0 auto 12px auto', opacity: 0.4 }} />
+            <img
+              src="/icons8-bot-48.png"
+              alt="No Email Records"
+              width={36}
+              height={36}
+              className="w-9 h-9 object-contain mx-auto mb-3 opacity-30 grayscale"
+            />
             <div style={{ fontWeight: 600, color: '#94a3b8', fontSize: '1rem' }}>No Email Records Found</div>
             <p style={{ fontSize: '0.82rem', marginTop: 4 }}>
               {searchQuery ? 'Try adjusting your search query or filter.' : 'Generate your first email in Composer to see it recorded here.'}

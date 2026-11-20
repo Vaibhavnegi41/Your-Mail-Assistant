@@ -525,7 +525,13 @@ export default function Home() {
               onClick={() => setActiveTab('composer')}
               title="AI Email Studio"
             >
-              <Mail size={16} />
+              <img
+                src="/icons8-bot-48.png"
+                alt="AI Email Studio"
+                width={22}
+                height={22}
+                className="w-[22px] h-[22px] object-contain drop-shadow-[0_0_6px_rgba(255,255,255,0.4)]"
+              />
             </div>
             <span className="view-title">
               {activeTab === 'composer' && 'AI Email Studio'}
@@ -822,6 +828,13 @@ export default function Home() {
                 {isLoading ? (
                   /* Antigravity Agent Generating Stage with Clockwise Colored Moving Border */
                   <div className="antigravity-generating-card">
+                    <img
+                      src="/icons8-bot-48.png"
+                      alt="AI Generating"
+                      width={38}
+                      height={38}
+                      className="w-[38px] h-[38px] object-contain mb-3 animate-pulse"
+                    />
                     <h3 className="generating-title">
                       <span className="generating-title-gradient">Generating Mail Draft...</span>
                     </h3>
@@ -833,7 +846,13 @@ export default function Home() {
                   /* Empty State Guide */
                   <div className="canvas-empty-state">
                     <div className="empty-icon-wrap">
-                      <Mail size={32} />
+                      <img
+                        src="/icons8-bot-48.png"
+                        alt="Bot Assistant"
+                        width={34}
+                        height={34}
+                        className="w-[34px] h-[34px] object-contain"
+                      />
                     </div>
                     <h3 className="empty-title">Ready for Your First Draft</h3>
                     <p className="empty-desc">

@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>AI Email Assistant</title>
+  <link rel="icon" type="image/png" href="icons/icon48.png" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -34,12 +35,13 @@
     }
 
     .auth-logo {
-      width: 52px; height: 52px;
-      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-      border-radius: 14px;
+      width: 56px; height: 56px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
       display: flex; align-items: center; justify-content: center;
       margin-bottom: 18px;
-      box-shadow: 0 0 28px rgba(59,130,246,0.3);
+      box-shadow: 0 0 28px rgba(59,130,246,0.25);
     }
 
     .auth-title {
@@ -132,10 +134,7 @@
   <!-- Auth / Sign-in screen (Clean, minimal) -->
   <div id="auth-screen">
     <div class="auth-logo">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect width="20" height="16" x="2" y="4" rx="2"/>
-        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
-      </svg>
+      <img src="icons/icon48.png" alt="AI Email Assistant" width="36" height="36" style="object-fit: contain;" />
     </div>
 
     <div class="auth-title">AI Email Assistant</div>
