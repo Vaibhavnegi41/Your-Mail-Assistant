@@ -123,46 +123,6 @@ def google_auth_callback(code: str, state: Optional[str] = None):
 USER_DOCUMENTS = []
 
 
-@app.post("/documents")
-async def upload_document(
-    file: UploadFile = File(...),
-    user_id: str = Depends(get_current_user_id)
-):
-    """Validate upload, chunk, embed, and index into Pinecone under user's isolated namespace."""
-    extracted_text = await extract_text_from_file(file)
-    doc_id = str(uuid.uuid4())
-    filename = file.filename or "uploaded_document"
-
-    chunks_indexed = await run_in_threadpool(
-        index_document_chunks,
-        user_id=user_id,
-        doc_id=doc_id,
-        filename=filename,
-        text=extracted_text
-    )
-
-    doc_record = {
-        "id": doc_id,
-        "name": filename,
-        "size": f"{len(extracted_text) // 1024 or 1} KB",
-        "extracted_length": len(extracted_text),
-        "chunks_indexed": chunks_indexed,
-        "preview": extracted_text[:1000],
-        "user_id": user_id,
-        "uploaded_at": datetime.now(timezone.utc).strftime("%b %d, %H:%M")
-    }
-    USER_DOCUMENTS.insert(0, doc_record)
-
-    return {
-        "document_id": doc_id,
-        "filename": filename,
-        "extracted_length": len(extracted_text),
-        "chunks_indexed": chunks_indexed,
-        "preview": extracted_text[:1000],
-        "namespace": f"user_{user_id}"
-    }
-
-
 @app.get("/documents")
 def get_documents(user_id: str = Depends(get_current_user_id)):
     """Retrieve indexed documents for current user."""

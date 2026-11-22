@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { FolderLock, Upload, FileText, CheckCircle2, ArrowUpRight, Database, Layers, Trash2, AlertCircle, AlertTriangle, X, Eye, ArrowRight } from 'lucide-react';
-import { getUserDocuments, uploadDocumentToVault, deleteDocumentFromVault } from '@/lib/api';
+import React, { useState, useEffect } from 'react';
+import { FolderLock, FileText, CheckCircle2, ArrowUpRight, Database, Layers, Trash2, AlertCircle, AlertTriangle, X, Eye, ArrowRight } from 'lucide-react';
+import { getUserDocuments, deleteDocumentFromVault } from '@/lib/api';
 
 /* -----------------------------------------------------------------------
    Delete Confirmation Modal (inline, matches app modal theme)
@@ -257,10 +257,8 @@ interface VaultViewProps {
 
 export const VaultView: React.FC<VaultViewProps> = ({ onUseInComposer }) => {
   const [items, setItems] = useState<VaultItem[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isLoadingInitial, setIsLoadingInitial] = useState(true);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Delete modal state
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; id: string; name: string }>({
@@ -309,30 +307,6 @@ export const VaultView: React.FC<VaultViewProps> = ({ onUseInComposer }) => {
     fetchDocs();
   }, []);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !e.target.files[0]) return;
-    const file = e.target.files[0];
-    setIsUploading(true);
-    try {
-      const res = await uploadDocumentToVault(file);
-      const newItem: VaultItem = {
-        id: res.document_id,
-        name: res.filename,
-        size: `${(file.size / 1024).toFixed(1)} KB`,
-        extractedLength: res.extracted_length,
-        chunks_indexed: res.chunks_indexed,
-        preview: res.preview,
-        uploadedAt: 'Just now',
-      };
-      setItems((prev) => [newItem, ...prev.filter(d => d.id !== 'doc-sample-1')]);
-    } catch (err: any) {
-      alert(err.message || 'Failed to upload document');
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
   const handleDeleteDocument = async (docId: string, docName: string) => {
     // Open the themed modal instead of window.confirm
     setDeleteModal({ open: true, id: docId, name: docName });
@@ -380,35 +354,7 @@ export const VaultView: React.FC<VaultViewProps> = ({ onUseInComposer }) => {
         }}
       />
 
-      {/* Header bar */}
-      <div className="pane-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-
-          <p className="pane-subtitle" style={{ fontSize: '0.82rem', color: '#64748b', marginTop: 2 }}>
-            Ground-truth documents chunked, embedded, and indexed under your isolated Pinecone namespace.
-          </p>
-        </div>
-        <div>
-          <input
-            type="file"
-            ref={fileInputRef}
-            style={{ display: 'none' }}
-            accept=".pdf,.docx,.txt"
-            onChange={handleFileUpload}
-            disabled={isUploading}
-          />
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: '0.84rem' }}
-          >
-            <Upload size={14} />
-            {isUploading ? 'Chunking & Indexing...' : 'Upload to Pinecone Vault'}
-          </button>
-        </div>
-      </div>
+      
 
       {/* Grid container */}
       {items.length === 0 && !isLoadingInitial ? (
@@ -428,7 +374,7 @@ export const VaultView: React.FC<VaultViewProps> = ({ onUseInComposer }) => {
           <FolderLock size={40} color="#475569" />
           <div style={{ fontSize: '1rem', fontWeight: 600, color: '#94a3b8' }}>Your Pinecone Vault is Empty</div>
           <div style={{ fontSize: '0.82rem', maxWidth: 380 }}>
-            Upload a reference PDF, DOCX, or text file. It will be chunked, embedded, and indexed into your Pinecone namespace for semantic grounding.
+            No reference documents available in your namespace. Documents attached in Composer will appear here for grounding.
           </div>
         </div>
       ) : (

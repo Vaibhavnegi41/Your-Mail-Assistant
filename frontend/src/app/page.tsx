@@ -523,18 +523,18 @@ export default function Home() {
             <div
               className="mobile-header-logo"
               onClick={() => setActiveTab('composer')}
-              title="AI Email Studio"
+              title="Mail Studio"
             >
               <img
                 src="/icons8-bot-48.png"
-                alt="AI Email Studio"
+                alt="Mail Studio"
                 width={22}
                 height={22}
                 className="w-[22px] h-[22px] object-contain drop-shadow-[0_0_6px_rgba(255,255,255,0.4)]"
               />
             </div>
             <span className="view-title">
-              {activeTab === 'composer' && 'AI Email Studio'}
+              {activeTab === 'composer' && 'Mail Studio'}
               {activeTab === 'records' && 'Mail Records & Results'}
               {activeTab === 'vault' && 'Document Context Vault'}
             </span>
