@@ -12,6 +12,7 @@
     "https://gmail.googleapis.com/*",
     "https://oauth2.googleapis.com/*",
     "https://www.googleapis.com/*",
+    "https://your-mail-assistant.vercel.app/*",
     "http://localhost:8000/*",
     "http://127.0.0.1:8000/*"
   ],
@@ -40,7 +41,7 @@
     "default_path": "sidepanel.html"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; frame-src 'self' http://localhost:3000 http://localhost:3001 http://127.0.0.1:3000 http://127.0.0.1:3001;"
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-src 'self' https://your-mail-assistant.vercel.app "
   },
   "icons": {
     "16": "icons/icon16.png",

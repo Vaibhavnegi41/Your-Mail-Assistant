@@ -10,7 +10,10 @@
  *  6. Listens for SIGN_OUT event from Next.js frontend to cleanly log out
  */
 
-const APP_URLS = ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000'];
+const APP_URLS = [
+  'https://your-mail-assistant.vercel.app',
+
+];
 
 // DOM refs
 const authScreen       = document.getElementById('auth-screen');
@@ -61,9 +64,10 @@ function showApp() {
 
 /** Find the first responsive port and load the app iframe */
 async function detectAndLoadApp() {
-  for (const url of APP_URLS) {
+  for (const rawUrl of APP_URLS) {
+    const url = rawUrl.replace(/\/+$/, '');
     try {
-      await fetch(url, { method: 'HEAD', mode: 'no-cors', signal: AbortSignal.timeout(1500) });
+      await fetch(url, { method: 'HEAD', mode: 'no-cors', signal: AbortSignal.timeout(2000) });
       if (appFrame.src !== url) {
         appFrame.src = url;
       }
@@ -189,8 +193,11 @@ async function handleSignOut() {
 // Inter-window messaging (Next.js iframe ↔ Extension Sidepanel)
 // ─────────────────────────────────────────────────────────────
 window.addEventListener('message', async (event) => {
-  const isOurApp = APP_URLS.some(u => event.origin.startsWith(u.replace('http://', 'http://')));
-  if (!isOurApp && !event.origin.startsWith('http://localhost')) return;
+  const isOurApp = APP_URLS.some(u => {
+    const clean = u.replace(/\/+$/, '');
+    return event.origin === clean || event.origin.startsWith(clean);
+  });
+  if (!isOurApp && !event.origin.startsWith('http://localhost') && !event.origin.endsWith('.vercel.app')) return;
 
   // Frontend signals it is ready to receive auth token & profile
   if (event.data?.type === 'FRONTEND_READY') {
