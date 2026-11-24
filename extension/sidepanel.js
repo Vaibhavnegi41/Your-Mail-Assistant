@@ -10,9 +10,10 @@
  *  6. Listens for SIGN_OUT event from Next.js frontend to cleanly log out
  */
 
+const APP_URL = 'https://your-mail-assistant.vercel.app';
 const APP_URLS = [
   'https://your-mail-assistant.vercel.app',
-
+  'http://localhost:3000'
 ];
 
 // DOM refs
