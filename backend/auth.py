@@ -59,7 +59,22 @@ async def verify_google_token(access_token: str) -> str:
     _evict_expired_tokens()
 
     # 2. Call Google's tokeninfo endpoint
-    google_client_id = os.getenv("GOOGLE_CLIENT_ID", "").strip()
+    # Support comma-separated GOOGLE_CLIENT_ID plus optional GOOGLE_WEB_CLIENT_ID
+    # so tokens from both the Chrome Extension and Web App are accepted.
+    raw_ids = ",".join(
+        filter(
+            None,
+            [
+                os.getenv("GOOGLE_CLIENT_ID", ""),
+                os.getenv("GOOGLE_WEB_CLIENT_ID", ""),
+            ],
+        )
+    )
+    allowed_client_ids = {
+        cid.strip()
+        for cid in raw_ids.split(",")
+        if cid.strip() and not cid.strip().startswith("your_google_client_id")
+    }
 
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
@@ -86,10 +101,10 @@ async def verify_google_token(access_token: str) -> str:
 
     data = resp.json()
 
-    # 3. Validate audience (aud) matches your Google Client ID
+    # 3. Validate audience (aud) matches one of your configured Google Client IDs
     #    This prevents tokens issued for other apps from being accepted.
     aud = data.get("aud", "")
-    if google_client_id and aud != google_client_id:
+    if allowed_client_ids and aud not in allowed_client_ids:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token audience mismatch — token was not issued for this application.",

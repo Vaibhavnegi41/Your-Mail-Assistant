@@ -194,45 +194,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSignInSuccess }) => {
 
         {/* Title & Subtitle */}
         <h1 className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-white via-slate-100 to-slate-400 tracking-tight mb-2">
-          AI Email Assistant
+          Your Email Assistant
         </h1>
         <p className="text-xs text-slate-400 leading-relaxed mb-5 max-w-[300px]">
           Generate, review & approve smart drafts directly in Gmail with Human-in-the-Loop AI.
         </p>
 
-        {/* Feature Highlights Showcase */}
-        <div className="w-full flex flex-col gap-2 mb-6 text-left">
-          <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.12] transition-all">
-            <div className="w-7 h-7 rounded-lg bg-sky-500/15 text-sky-400 flex items-center justify-center text-xs shrink-0 font-bold">
-              ⚡
-            </div>
-            <div className="text-[12px] text-slate-300 leading-snug">
-              <strong className="text-white font-semibold">Context-Aware Synthesis</strong>
-              <div className="text-[11px] text-slate-400">Adaptive tone, notes & document grounding</div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.12] transition-all">
-            <div className="w-7 h-7 rounded-lg bg-purple-500/15 text-purple-400 flex items-center justify-center text-xs shrink-0 font-bold">
-              🛡️
-            </div>
-            <div className="text-[12px] text-slate-300 leading-snug">
-              <strong className="text-white font-semibold">Human-in-the-Loop Review</strong>
-              <div className="text-[11px] text-slate-400">Nothing sends until you inspect & approve</div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.12] transition-all">
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center text-xs shrink-0 font-bold">
-              📬
-            </div>
-            <div className="text-[12px] text-slate-300 leading-snug">
-              <strong className="text-white font-semibold">Native Gmail Integration</strong>
-              <div className="text-[11px] text-slate-400">1-click dispatch directly from Gmail tab</div>
-            </div>
-          </div>
-        </div>
-
+        
         {/* Error message banner */}
         {error && (
           <div className="w-full mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs flex items-start gap-2 text-left animate-in fade-in">
@@ -279,11 +247,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSignInSuccess }) => {
           )}
         </button>
 
-        {/* Security badge note */}
-        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-4">
-          <Lock size={12} className="text-slate-500" />
-          <span>Secure Google OAuth 2.0 authentication</span>
-        </div>
+        
 
         {/* Dev / Demo sign-in link */}
         <div className="mt-4 pt-3 border-t border-white/[0.06] w-full text-center">
