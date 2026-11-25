@@ -17,6 +17,13 @@ interface SidebarProps {
   onTabChange: (tab: NavTab) => void;
   pendingCount?: number;
   totalRecordsCount?: number;
+  userProfile?: {
+    email: string;
+    name: string;
+    picture?: string;
+  } | null;
+  onProfileClick?: () => void;
+  userInitials?: string;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -24,6 +31,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onTabChange,
   pendingCount = 0,
   totalRecordsCount = 0,
+  userProfile = null,
+  onProfileClick,
+  userInitials = 'VN',
 }) => {
   return (
     <aside className="vscode-sidebar" aria-label="Main Navigation">
@@ -93,12 +103,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
         />
 
         {/* User Avatar */}
-        <div
-          className="user-avatar-btn"
-          title="Account / Workspace"
+        <button
+          type="button"
+          onClick={onProfileClick}
+          className="user-avatar-btn overflow-hidden focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          title={userProfile?.name || 'Account & Profile'}
+          aria-label="Account details"
         >
-          VN
-        </div>
+          {userProfile?.picture ? (
+            <img
+              src={userProfile.picture}
+              alt={userProfile.name || 'User'}
+              className="w-full h-full object-cover rounded-full"
+            />
+          ) : (
+            <span>{userInitials || 'VN'}</span>
+          )}
+        </button>
       </div>
     </aside>
   );

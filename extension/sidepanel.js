@@ -63,19 +63,13 @@ function showApp() {
   appFrame.style.height       = '100%';
 }
 
-/** Find the first responsive port and load the app iframe */
-async function detectAndLoadApp() {
-  for (const rawUrl of APP_URLS) {
-    const url = rawUrl.replace(/\/+$/, '');
-    try {
-      await fetch(url, { method: 'HEAD', mode: 'no-cors', signal: AbortSignal.timeout(2000) });
-      if (appFrame.src !== url) {
-        appFrame.src = url;
-      }
-      return url;
-    } catch { /* port not responding */ }
+/** Load the app iframe directly with the target URL */
+function loadApp() {
+  const targetUrl = APP_URL.replace(/\/+$/, '');
+  if (!appFrame.src || appFrame.src === 'about:blank' || !appFrame.src.startsWith(targetUrl)) {
+    appFrame.src = targetUrl;
   }
-  return null;
+  return targetUrl;
 }
 
 /**
@@ -100,15 +94,16 @@ async function tryRestoreSession() {
       new Promise((resolve) =>
         chrome.runtime.sendMessage({ type: 'GET_USER_INFO' }, resolve)
       ),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
     ]);
 
     if (response?.success && response.token && response.userInfo) {
       currentToken = response.token;
       currentUserInfo = response.userInfo;
       showApp();
-      await detectAndLoadApp();
+      loadApp();
       appFrame.onload = () => injectTokenIntoFrame(currentToken, currentUserInfo);
+      injectTokenIntoFrame(currentToken, currentUserInfo);
       return true;
     }
   } catch {
@@ -168,12 +163,7 @@ async function handleSignIn() {
   currentUserInfo = response.userInfo;
   showApp();
 
-  const appUrl = await detectAndLoadApp();
-  if (!appUrl) {
-    showAuthScreen('Signed in! But frontend server is not running on localhost:3000.');
-    return;
-  }
-
+  loadApp();
   appFrame.onload = () => injectTokenIntoFrame(currentToken, currentUserInfo);
   // Also send immediately in case iframe was already loaded
   injectTokenIntoFrame(currentToken, currentUserInfo);

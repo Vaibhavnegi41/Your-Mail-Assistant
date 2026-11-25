@@ -22,8 +22,11 @@ import {
   generateEmail,
   approveEmail,
   rejectEmail,
-  getEmailRecords
+  getEmailRecords,
+  setAuthToken,
+  getAuthToken
 } from '@/lib/api';
+import { AuthScreen, AuthUserInfo } from '@/components/AuthScreen';
 import {
   Sparkles,
   Mail,
@@ -96,6 +99,8 @@ export default function Home() {
     picture?: string;
   } | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isIframe, setIsIframe] = useState(false);
+  const [isSessionChecked, setIsSessionChecked] = useState(false);
   const profileContainerRef = useRef<HTMLDivElement>(null);
 
   // Live Generating Status Messages
@@ -112,8 +117,11 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [isLoading]);
 
-  // Load records on mount
+  // Load records on mount & detect iframe
   useEffect(() => {
+    const insideIframe = typeof window !== 'undefined' && window.self !== window.top;
+    setIsIframe(insideIframe);
+
     const fetchRecords = async () => {
       try {
         const backendRecords = await getEmailRecords();
@@ -149,6 +157,9 @@ export default function Home() {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'EXTENSION_AUTH_TOKEN' && event.data.userInfo) {
         setUserProfile(event.data.userInfo);
+        if (event.data.token) {
+          setAuthToken(event.data.token);
+        }
         try {
           localStorage.setItem('user_profile_cache', JSON.stringify(event.data.userInfo));
         } catch {}
@@ -158,8 +169,16 @@ export default function Home() {
 
     try {
       const cached = localStorage.getItem('user_profile_cache');
-      if (cached) setUserProfile(JSON.parse(cached));
+      const cachedToken = localStorage.getItem('auth_token_cache');
+      if (cached) {
+        setUserProfile(JSON.parse(cached));
+      }
+      if (cachedToken) {
+        setAuthToken(cachedToken);
+      }
     } catch {}
+
+    setIsSessionChecked(true);
 
     if (typeof window !== 'undefined' && window.parent) {
       window.parent.postMessage({ type: 'FRONTEND_READY' }, '*');
@@ -184,11 +203,22 @@ export default function Home() {
     };
   }, []);
 
+  const handleWebSignInSuccess = ({ token, userInfo }: { token: string; userInfo: AuthUserInfo }) => {
+    setUserProfile(userInfo);
+    setAuthToken(token);
+    try {
+      localStorage.setItem('user_profile_cache', JSON.stringify(userInfo));
+      localStorage.setItem('auth_token_cache', token);
+    } catch {}
+  };
+
   const handleSignOut = () => {
     setIsProfileOpen(false);
     setUserProfile(null);
+    setAuthToken(null);
     try {
       localStorage.removeItem('user_profile_cache');
+      localStorage.removeItem('auth_token_cache');
     } catch {}
     if (typeof window !== 'undefined' && window.parent) {
       window.parent.postMessage({ type: 'SIGN_OUT' }, '*');
@@ -505,6 +535,21 @@ export default function Home() {
   // Pending count for sidebar badge
   const pendingCount = records.filter(r => r.status === 'pending_review').length;
 
+  // ── Web Authentication Screen Gate ──────────────────────────────
+  // If standalone website (not in Chrome Extension iframe) and not signed in:
+  if (!isIframe && isSessionChecked && !userProfile) {
+    return <AuthScreen onSignInSuccess={handleWebSignInSuccess} />;
+  }
+
+  // Brief loader while checking cached session for standalone website
+  if (!isIframe && !isSessionChecked) {
+    return (
+      <div className="w-screen h-screen bg-[#04060c] flex items-center justify-center">
+        <div className="w-7 h-7 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell">
       {/* 1. VS Code-Style Left Navigation Sidebar */}
@@ -513,6 +558,9 @@ export default function Home() {
         onTabChange={setActiveTab}
         pendingCount={pendingCount}
         totalRecordsCount={records.length}
+        userProfile={userProfile}
+        onProfileClick={() => setIsProfileOpen((prev) => !prev)}
+        userInitials={getUserInitials()}
       />
 
       {/* 2. Main Viewport */}

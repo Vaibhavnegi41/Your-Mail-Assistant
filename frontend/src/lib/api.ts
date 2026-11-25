@@ -3,35 +3,58 @@ import { ReviewDraft, EmailStatusResponse } from './types';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
 // ---------------------------------------------------------------------------
-// Extension Auth Token Manager
+// Unified Auth Token Manager (Chrome Extension & Standalone Web)
 //
-// When running inside the Chrome Extension side panel, the service worker
-// injects the Google OAuth access_token via postMessage:
-//   { type: 'EXTENSION_AUTH_TOKEN', token: '<google_access_token>' }
+// Supports:
+//   1. Standalone Web: Google Identity Services (GIS) access_token stored in localStorage
+//   2. Chrome Extension: Injected via postMessage ({ type: 'EXTENSION_AUTH_TOKEN', token: '...' })
 //
-// All fetch calls to the backend then attach:
+// All fetch calls attach:
 //   Authorization: Bearer <token>
-//
-// If the backend returns 401, we notify the extension to refresh the token.
 // ---------------------------------------------------------------------------
-let _extensionToken: string | null = null;
+let _currentToken: string | null = null;
+
+export function setAuthToken(token: string | null): void {
+  _currentToken = token;
+  if (typeof window !== 'undefined') {
+    try {
+      if (token) {
+        localStorage.setItem('auth_token_cache', token);
+      } else {
+        localStorage.removeItem('auth_token_cache');
+      }
+    } catch {}
+  }
+}
+
+export function getAuthToken(): string | null {
+  if (_currentToken) return _currentToken;
+  if (typeof window !== 'undefined') {
+    try {
+      _currentToken = localStorage.getItem('auth_token_cache');
+    } catch {}
+  }
+  return _currentToken;
+}
 
 if (typeof window !== 'undefined') {
+  // Listen for extension messages when embedded in Chrome Side Panel iframe
   window.addEventListener('message', (event) => {
     if (event.data?.type === 'EXTENSION_AUTH_TOKEN' && event.data.token) {
-      _extensionToken = event.data.token;
-      console.log('[API] Extension auth token received.');
+      setAuthToken(event.data.token);
+      console.log('[API] Extension auth token received & stored.');
     }
   });
 }
 
 function authHeaders(): Record<string, string> {
-  return _extensionToken ? { Authorization: `Bearer ${_extensionToken}` } : {};
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 function handleUnauthorized(response: Response): void {
-  if (response.status === 401 && _extensionToken) {
-    _extensionToken = null;
+  if (response.status === 401) {
+    setAuthToken(null);
     if (typeof window !== 'undefined') {
       window.parent?.postMessage({ type: 'REQUEST_AUTH_TOKEN_REFRESH' }, '*');
     }
