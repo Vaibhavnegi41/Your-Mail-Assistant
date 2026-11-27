@@ -570,12 +570,6 @@ export const InspectRecordModal: React.FC<InspectRecordModalProps> = ({
             <span className="modal-info-label">Tone & Version</span>
             <span className="modal-info-val">{record.tone} (v{record.version})</span>
           </div>
-          {record.gmail_message_id && (
-            <div className="modal-info-row">
-              <span className="modal-info-label">Gmail Message ID</span>
-              <span className="modal-info-val" style={{ color: '#38bdf8' }}>{record.gmail_message_id}</span>
-            </div>
-          )}
         </div>
 
         {/* Subject — full, no truncation, above body */}
